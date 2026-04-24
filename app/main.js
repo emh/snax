@@ -1,0 +1,485 @@
+import {
+  DEFAULT_FILTERS,
+  REST_DURATION,
+  SNACK_DURATION,
+  describeFilters,
+  ensureHistoryEntry,
+  filterExercises,
+  findHistoryEntry,
+  formatDayTitle,
+  formatLongDate,
+  formatMetaText,
+  formatMonthDay,
+  formatRunDuration,
+  formatShortDate,
+  formatSizeLabel,
+  formatTime,
+  formatTimerSeconds,
+  getLoad,
+  groupByStack,
+  pickStack,
+  recentDateKeys,
+  summarizeEntries,
+  todayKey,
+} from "./model.js";
+import { loadAppState, saveAppState } from "./storage.js";
+
+const loadedState = loadAppState();
+const state = {
+  filters: { ...DEFAULT_FILTERS },
+  stack: [],
+  runIdx: 0,
+  secondsLeft: SNACK_DURATION,
+  paused: false,
+  timerHandle: null,
+  restHandle: null,
+  completed: [],
+  currentStackId: "",
+  history: loadedState.history,
+};
+
+const $ = (id) => document.getElementById(id);
+
+let toastTimer;
+
+function esc(value) {
+  const div = document.createElement("div");
+  div.textContent = value == null ? "" : String(value);
+  return div.innerHTML;
+}
+
+function save() {
+  saveAppState({ history: state.history });
+}
+
+function toast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    el.classList.remove("visible");
+  }, 1800);
+}
+
+function showView(name) {
+  document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
+  $(`view-${name}`).classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+function todayEntry() {
+  return ensureHistoryEntry(state.history, todayKey());
+}
+
+function renderSparkBars(snacks, variant, emptyLabel) {
+  if (snacks.length === 0) {
+    return `<span class="spark-empty">${esc(emptyLabel)}</span>`;
+  }
+
+  const unit = variant === "archive" ? 7 : variant === "day" ? 12 : 10;
+  return snacks
+    .map(
+      (snack, index) =>
+        `<span class="spark-bar spark-bar-${variant} cat-${esc(snack.category)}" style="height: ${8 + snack.intensity * unit}px; animation-delay: ${index * 0.04}s"></span>`,
+    )
+    .join("");
+}
+
+function renderIntensityPips(intensity, category) {
+  let html = `<span class="int-pips cat-${esc(category)}">`;
+  for (let value = 1; value <= 3; value += 1) {
+    html += `<span class="pip ${value <= intensity ? "on" : ""}"></span>`;
+  }
+  html += "</span>";
+  return html;
+}
+
+function renderHome() {
+  renderDate();
+  renderToday();
+  renderArchive();
+}
+
+function renderDate() {
+  $("home-date").textContent = formatLongDate(todayKey());
+}
+
+function renderToday() {
+  const entry = findHistoryEntry(state.history, todayKey());
+  const snacks = entry ? entry.snacks : [];
+  const panel = $("today-panel");
+  $("today-meta").textContent = formatMetaText(snacks);
+  $("today-spark").innerHTML = renderSparkBars(snacks, "today", "quiet so far");
+  panel.classList.toggle("clickable", snacks.length > 0);
+}
+
+function renderArchive() {
+  const keys = recentDateKeys(7, false);
+  const entries = keys.map((dateKey) => findHistoryEntry(state.history, dateKey) || { dateKey, snacks: [] });
+  const stats = summarizeEntries(entries);
+
+  $("archive-stats").textContent = `7d / ${stats.count} snacks / load ${stats.load}`;
+  $("archive-list").innerHTML = entries
+    .map((entry) => {
+      const meta = entry.snacks.length > 0 ? `${entry.snacks.length} / load ${getLoad(entry.snacks)}` : "--";
+      return `
+        <div class="archive-row ${entry.snacks.length > 0 ? "has-snacks" : ""}" data-date="${esc(entry.dateKey)}">
+          <span class="archive-date">${esc(formatShortDate(entry.dateKey))}</span>
+          <div class="archive-spark">${renderSparkBars(entry.snacks, "archive", "fast")}</div>
+          <span class="archive-meta">${esc(meta)}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function shakeJar() {
+  const pool = filterExercises(state.filters);
+  if (pool.length === 0) {
+    toast("no snacks match those filters");
+    return;
+  }
+
+  state.stack = pickStack(pool, state.filters.size);
+  renderPreview();
+  showView("preview");
+}
+
+function renderPreview() {
+  $("preview-title").textContent = formatStackLabel(state.stack.length);
+  $("preview-sub").textContent = describeFilters(state.filters);
+  $("preview-list").innerHTML = state.stack
+    .map(
+      (exercise, index) => `
+        <article class="preview-item">
+          <span class="idx">${String(index + 1).padStart(2, "0")}</span>
+          <div class="body">
+            <div class="preview-name-row">
+              <span class="day-bar cat-${esc(exercise.category)}" data-intensity="${exercise.intensity}"></span>
+              <p class="name">${esc(exercise.name)}</p>
+            </div>
+            <div class="meta">
+              <span class="cue">${esc(exercise.cue)}</span>
+            </div>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function beginRun() {
+  if (state.stack.length === 0) {
+    toast("shake the jar first");
+    return;
+  }
+
+  state.runIdx = 0;
+  state.completed = [];
+  state.paused = false;
+  state.currentStackId = `r-${Date.now()}`;
+  showView("run");
+  startSnack();
+}
+
+function startSnack() {
+  clearInterval(state.restHandle);
+  clearInterval(state.timerHandle);
+
+  const snack = state.stack[state.runIdx];
+  if (!snack) {
+    return;
+  }
+
+  const nextSnack = state.stack[state.runIdx + 1];
+
+  $("timer-step").textContent = `snack ${state.runIdx + 1} / ${state.stack.length}`;
+  $("timer-category").textContent = snack.category;
+  $("timer-category").className = `timer-category cat-${snack.category}`;
+  $("timer-name").textContent = snack.name;
+  $("timer-intensity").innerHTML = renderIntensityPips(snack.intensity, snack.category);
+  $("timer-next").innerHTML = nextSnack
+    ? `<span class="em-dash">--</span>next: ${esc(nextSnack.name)}`
+    : `<span class="em-dash">--</span>last one. finish strong.`;
+  $("timer-fill").className = `timer-progress-fill cat-${snack.category}`;
+
+  state.secondsLeft = SNACK_DURATION;
+  state.paused = false;
+  $("btn-pause").textContent = "pause";
+  $("btn-pause").classList.remove("pause-active");
+
+  updateTimerDisplay();
+  state.timerHandle = window.setInterval(tickSnack, 1000);
+}
+
+function tickSnack() {
+  if (state.paused) {
+    return;
+  }
+
+  state.secondsLeft -= 1;
+  updateTimerDisplay();
+
+  if (state.secondsLeft <= 0) {
+    completeCurrentSnack(false);
+  }
+}
+
+function updateTimerDisplay() {
+  $("timer-seconds").innerHTML = `${formatTimerSeconds(state.secondsLeft)}<span class="s">s</span>`;
+  $("timer-fill").style.transform = `scaleX(${state.secondsLeft / SNACK_DURATION})`;
+}
+
+function completeCurrentSnack(skipped) {
+  clearInterval(state.timerHandle);
+
+  state.completed.push({
+    ...state.stack[state.runIdx],
+    at: new Date().toISOString(),
+    stack: state.currentStackId,
+    skipped,
+  });
+
+  if (state.runIdx >= state.stack.length - 1) {
+    finishRun();
+    return;
+  }
+
+  state.runIdx += 1;
+  startRest();
+}
+
+function startRest() {
+  clearInterval(state.restHandle);
+  showView("rest");
+
+  let seconds = REST_DURATION;
+  $("rest-seconds").textContent = String(seconds);
+  $("rest-next-name").textContent = state.stack[state.runIdx].name;
+  $("rest-fill").style.transform = "scaleX(0)";
+
+  state.restHandle = window.setInterval(() => {
+    seconds -= 1;
+    $("rest-seconds").textContent = String(seconds);
+    $("rest-fill").style.transform = `scaleX(${1 - seconds / REST_DURATION})`;
+
+    if (seconds <= 0) {
+      clearInterval(state.restHandle);
+      showView("run");
+      startSnack();
+    }
+  }, 1000);
+}
+
+function finishRun() {
+  const entry = todayEntry();
+  entry.snacks.push(...state.completed);
+  save();
+  renderDone();
+  showView("done");
+}
+
+function renderDone() {
+  $("done-title").textContent = `${formatSizeLabel(state.completed.length)} complete`;
+  $("done-spark").innerHTML = renderSparkBars(state.completed, "done", "");
+  $("done-list").innerHTML = state.completed
+    .map(
+      (snack, index) => `
+        <div class="done-list-item">
+          <span>${String(index + 1).padStart(2, "0")}. ${esc(snack.name)}</span>
+          <span class="meta cat-tag cat-${esc(snack.category)}">${esc(snack.category)} / ${snack.intensity}</span>
+        </div>
+      `,
+    )
+    .join("");
+  $("done-stats").textContent = `load ${getLoad(state.completed)} / ${formatRunDuration(state.completed.length)}`;
+}
+
+function togglePause() {
+  state.paused = !state.paused;
+  $("btn-pause").textContent = state.paused ? "resume" : "pause";
+  $("btn-pause").classList.toggle("pause-active", state.paused);
+}
+
+function skipSnack() {
+  completeCurrentSnack(true);
+}
+
+function prevSnack() {
+  if (state.runIdx === 0) {
+    toast("already at the first snack");
+    return;
+  }
+
+  state.runIdx -= 1;
+  state.completed.pop();
+  startSnack();
+}
+
+function quitRun() {
+  if (state.completed.length > 0) {
+    const confirmed = window.confirm(
+      `Quit? You've finished ${state.completed.length} of ${state.stack.length}. They'll still be logged.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    const entry = todayEntry();
+    entry.snacks.push(...state.completed);
+    save();
+  }
+
+  clearInterval(state.timerHandle);
+  clearInterval(state.restHandle);
+  renderHome();
+  showView("home");
+}
+
+function showDay(dateKey) {
+  const entry = findHistoryEntry(state.history, dateKey);
+  if (!entry || entry.snacks.length === 0) {
+    return;
+  }
+
+  $("day-title").textContent = formatDayTitle(dateKey);
+  $("day-sub").textContent = `${formatMonthDay(dateKey)} / ${entry.snacks.length} snack${entry.snacks.length === 1 ? "" : "s"} / load ${getLoad(entry.snacks)}`;
+  $("day-hero-spark").innerHTML = renderSparkBars(entry.snacks, "day", "");
+  $("day-list").innerHTML = groupByStack(entry.snacks)
+    .map(
+      (group) => `
+        <div class="day-group">
+          <div class="day-group-time">${group.at ? esc(formatTime(group.at)) : "--"}</div>
+          <div class="day-group-snacks">
+            ${group.snacks
+              .map(
+                (snack) => `
+                  <div class="day-snack">
+                    <span class="day-bar cat-${esc(snack.category)}" data-intensity="${snack.intensity}"></span>
+                    <span class="day-snack-name">${esc(snack.name)}${snack.skipped ? '<span class="skipped-tag"> skipped</span>' : ""}</span>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+        </div>
+      `,
+    )
+    .join("");
+
+  showView("day");
+}
+
+function goHome() {
+  renderHome();
+  showView("home");
+}
+
+function formatStackLabel(size) {
+  if (size === 1) {
+    return "single";
+  }
+
+  if (size === 3) {
+    return "triple";
+  }
+
+  if (size === 5) {
+    return "high five";
+  }
+
+  return formatSizeLabel(size);
+}
+
+function attachChipHandlers() {
+  document.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const group = chip.dataset.group;
+      const rawValue = chip.dataset.val;
+      if (!group || !rawValue) {
+        return;
+      }
+
+      state.filters[group] = group === "size" ? Number(rawValue) : rawValue;
+
+      document.querySelectorAll(`.chip[data-group="${group}"]`).forEach((other) => {
+        other.classList.remove("active", "cat-cardio", "cat-strength", "cat-core", "cat-mobility", "cat-breath");
+      });
+
+      chip.classList.add("active");
+      if (group === "category" && rawValue !== "any") {
+        chip.classList.add(`cat-${rawValue}`);
+      }
+    });
+  });
+}
+
+function init() {
+  attachChipHandlers();
+  renderHome();
+
+  $("shake-btn").addEventListener("click", shakeJar);
+  $("begin-btn").addEventListener("click", beginRun);
+  $("btn-prev").addEventListener("click", prevSnack);
+  $("btn-pause").addEventListener("click", togglePause);
+  $("btn-skip").addEventListener("click", skipSnack);
+  $("timer-quit").addEventListener("click", quitRun);
+  $("btn-return").addEventListener("click", goHome);
+
+  document.querySelectorAll('[data-action="home"]').forEach((button) => {
+    button.addEventListener("click", goHome);
+  });
+
+  $("more-toggle").addEventListener("click", () => {
+    const advanced = $("advanced");
+    const isOpen = advanced.classList.toggle("open");
+    $("more-toggle").textContent = isOpen ? "less..." : "more...";
+  });
+
+  $("today-panel").addEventListener("click", () => {
+    const entry = findHistoryEntry(state.history, todayKey());
+    if (entry && entry.snacks.length > 0) {
+      showDay(todayKey());
+    }
+  });
+
+  $("archive-list").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const row = target ? target.closest(".archive-row.has-snacks") : null;
+    if (row && row.dataset.date) {
+      showDay(row.dataset.date);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if ($("view-home").classList.contains("active") && event.key === " ") {
+      event.preventDefault();
+      shakeJar();
+    }
+
+    if ($("view-run").classList.contains("active")) {
+      if (event.key === " ") {
+        event.preventDefault();
+        togglePause();
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        skipSnack();
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        prevSnack();
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        quitRun();
+      }
+    }
+  });
+}
+
+init();

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#fffdf7" />
+    <title>snax</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <section id="view-home" class="view view-home active">
+        <header class="home-header">
+          <h1>sna<span class="x">x</span></h1>
+          <p class="date" id="home-date"></p>
+        </header>
+
+        <section class="today-panel" id="today-panel">
+          <div class="panel-head">
+            <span class="section-label">Today</span>
+            <span class="section-meta" id="today-meta">0 snacks</span>
+          </div>
+          <div class="today-spark" id="today-spark"></div>
+        </section>
+
+        <section class="picker">
+          <div class="chip-row chip-row-size">
+            <span class="row-label">Size</span>
+            <div class="chips">
+              <button class="chip" data-group="size" data-val="1" type="button">one</button>
+              <button class="chip active" data-group="size" data-val="3" type="button">three</button>
+              <button class="chip" data-group="size" data-val="5" type="button">five</button>
+            </div>
+            <button class="more-link" id="more-toggle" type="button">more...</button>
+          </div>
+
+          <div class="advanced" id="advanced">
+            <div class="chip-row">
+              <span class="row-label">Heat</span>
+              <div class="chips">
+                <button class="chip active" data-group="intensity" data-val="any" type="button">any</button>
+                <button class="chip" data-group="intensity" data-val="1" type="button">easy</button>
+                <button class="chip" data-group="intensity" data-val="2" type="button">medium</button>
+                <button class="chip" data-group="intensity" data-val="3" type="button">hard</button>
+              </div>
+            </div>
+
+            <div class="chip-row">
+              <span class="row-label">Flavor</span>
+              <div class="chips">
+                <button class="chip active" data-group="category" data-val="any" type="button">any</button>
+                <button class="chip" data-group="category" data-val="cardio" type="button">cardio</button>
+                <button class="chip" data-group="category" data-val="strength" type="button">strength</button>
+                <button class="chip" data-group="category" data-val="core" type="button">core</button>
+                <button class="chip" data-group="category" data-val="mobility" type="button">mobility</button>
+                <button class="chip" data-group="category" data-val="breath" type="button">breath</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="shake-actions">
+            <button class="btn-shake" id="shake-btn" type="button">go</button>
+          </div>
+        </section>
+
+        <section class="archive">
+          <div class="archive-head">
+            <span class="section-label">History</span>
+            <span class="section-label" id="archive-stats">7d / 0 snacks / load 0</span>
+          </div>
+
+          <div class="archive-list" id="archive-list"></div>
+        </section>
+      </section>
+
+        <section id="view-preview" class="view view-preview">
+          <div class="preview-header">
+          <button class="back-btn" data-action="home" type="button">back</button>
+          <h2 class="preview-title" id="preview-title">triple</h2>
+          <p class="preview-sub" id="preview-sub">any flavour / any heat</p>
+          </div>
+
+        <div class="preview-list" id="preview-list"></div>
+
+        <div class="preview-actions">
+          <button class="btn-begin" id="begin-btn" type="button">begin</button>
+        </div>
+      </section>
+
+      <section id="view-run" class="view view-run">
+        <div class="timer-topbar">
+          <span class="timer-step" id="timer-step">snack 1 / 3</span>
+          <button class="timer-quit" id="timer-quit" type="button">quit</button>
+        </div>
+
+        <div class="timer-stage">
+          <p class="timer-category" id="timer-category">strength</p>
+          <h2 class="timer-name" id="timer-name">kettlebell swing</h2>
+          <div class="timer-intensity" id="timer-intensity"></div>
+
+          <div class="timer-seconds-wrap">
+            <span class="timer-seconds" id="timer-seconds">60<span class="s">s</span></span>
+          </div>
+
+          <div class="timer-progress">
+            <div class="timer-progress-fill" id="timer-fill"></div>
+          </div>
+
+          <p class="timer-next" id="timer-next"><span class="em-dash">--</span>next: ring row</p>
+        </div>
+
+        <div class="timer-bottom">
+          <button class="timer-btn" id="btn-prev" type="button">prev</button>
+          <button class="timer-btn" id="btn-pause" type="button">pause</button>
+          <button class="timer-btn" id="btn-skip" type="button">skip</button>
+        </div>
+      </section>
+
+      <section id="view-rest" class="view view-rest">
+        <p class="rest-label">rest / breathe</p>
+        <p class="rest-seconds" id="rest-seconds">10</p>
+        <div class="rest-bar"><div class="rest-bar-fill" id="rest-fill"></div></div>
+        <p class="rest-next">next -- <span class="rest-next-name" id="rest-next-name">ring row</span></p>
+      </section>
+
+      <section id="view-done" class="view view-done">
+        <div class="done-wrap">
+          <p class="done-label">well done<span class="done-dot"> .</span></p>
+          <h2 class="done-title" id="done-title">three complete</h2>
+
+          <div class="done-summary">
+            <div class="done-spark" id="done-spark"></div>
+            <div class="done-list" id="done-list"></div>
+            <p class="done-stats" id="done-stats"></p>
+          </div>
+
+          <div class="done-actions">
+            <button class="btn-return" id="btn-return" type="button">back to the jar -&gt;</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-day" class="view view-day">
+        <div class="preview-header">
+          <button class="back-btn" data-action="home" type="button">back</button>
+          <h2 class="preview-title" id="day-title">today</h2>
+          <p class="preview-sub" id="day-sub"></p>
+        </div>
+
+        <div class="day-hero">
+          <div class="day-hero-spark" id="day-hero-spark"></div>
+        </div>
+
+        <div class="preview-list" id="day-list"></div>
+      </section>
+
+      <div class="toast" id="toast"></div>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

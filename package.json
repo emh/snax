@@ -1,0 +1,13 @@
+{
+  "name": "snax",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev:web",
+    "dev:web": "wds --root-dir app --watch --app-index index.html --hostname 127.0.0.1 --port 8032",
+    "check": "node --check app/model.js && node --check app/storage.js && node --check app/main.js"
+  },
+  "devDependencies": {
+    "@web/dev-server": "^0.4.6"
+  }
+}
