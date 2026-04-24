@@ -1,0 +1,1956 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#fffff8">
+  <title>snax</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #fffff8;
+      --paper-shade: #f7f3ea;
+      --ink: #111;
+      --ink-mid: #555;
+      --ink-light: #8e8a82;
+      --ink-faint: #c9c4ba;
+      --red: #8b0000;
+      --red-light: #a52a2a;
+      --rule: #e0dcd6;
+      --hover: rgba(0, 0, 0, 0.02);
+      --cat-cardio: #8b0000;
+      --cat-strength: #111;
+      --cat-core: #8f6a1f;
+      --cat-mobility: #4a6b4a;
+      --cat-breath: #3d5a7a;
+      --font: "Crimson Pro", "Palatino Linotype", Palatino, Georgia, serif;
+      --mono: "SF Mono", "Menlo", "Consolas", "Liberation Mono", monospace;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      overflow-x: hidden;
+      overscroll-behavior-y: contain;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 17px;
+      line-height: 1.6;
+      min-height: 100dvh;
+    }
+
+    button {
+      border: none;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+    }
+
+    .section-label {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* View orchestration */
+    .view {
+      display: none;
+      min-height: 100dvh;
+    }
+    .view.active { display: block; }
+
+    /* ———————————————————————————————————————————————— */
+    /* HOME */
+    /* ———————————————————————————————————————————————— */
+    #view-home {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 24px 96px;
+    }
+
+    @media (min-width: 700px) {
+      #view-home { padding: 0 40px 96px; }
+    }
+
+    .home-header {
+      padding-top: 56px;
+      margin-bottom: 36px;
+      text-align: center;
+    }
+
+    .home-header h1 {
+      font-family: var(--font);
+      font-size: 72px;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .home-header h1 .x {
+      display: inline-block;
+      color: var(--red);
+      transform: rotate(-4deg) translateY(-1px);
+    }
+
+    .home-header .byline {
+      margin-top: 14px;
+      color: var(--ink-mid);
+      font-size: 15px;
+      font-style: italic;
+      letter-spacing: 0.01em;
+    }
+
+    .home-header .date {
+      margin-top: 6px;
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+    }
+
+    /* Today panel */
+    .today-panel {
+      position: relative;
+      margin-bottom: 40px;
+      padding: 22px 0 18px;
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      transition: opacity 0.2s;
+    }
+
+    .today-panel.clickable { cursor: pointer; }
+    .today-panel.clickable:hover { opacity: 0.65; }
+
+    .archive-row {
+      transition: opacity 0.2s;
+    }
+    .archive-row.has-snacks { cursor: pointer; }
+    .archive-row.has-snacks:hover { opacity: 0.6; }
+
+    .today-panel-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .today-panel-head .label {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .today-panel-head .meta {
+      color: var(--ink-mid);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+    }
+
+    .today-spark {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      min-height: 40px;
+      padding: 0 2px;
+    }
+
+    .today-spark .bar {
+      width: 6px;
+      border-radius: 1px;
+      transition: opacity 0.2s;
+      animation: barRise 0.6s var(--ease) both;
+    }
+
+    .today-spark .bar.empty {
+      width: 100%;
+      flex: 1;
+      background: transparent;
+      color: var(--ink-faint);
+      font-style: italic;
+      font-size: 14px;
+      text-align: center;
+      animation: none;
+    }
+
+    @keyframes barRise {
+      from { transform: scaleY(0); }
+      to { transform: scaleY(1); }
+    }
+    .today-spark .bar { transform-origin: bottom; }
+
+    /* Picker — shake the jar */
+    .picker {
+      margin-bottom: 48px;
+    }
+
+    .picker-heading {
+      margin-bottom: 22px;
+      font-family: var(--font);
+      font-size: 30px;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1;
+    }
+
+    .picker-heading .amp {
+      display: inline-block;
+      margin: 0 2px;
+      color: var(--red);
+      font-weight: 400;
+    }
+
+    .chip-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      align-items: baseline;
+      gap: 4px 14px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px dotted var(--rule);
+    }
+
+    .chip-row .row-label {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding-top: 2px;
+    }
+
+    .chip-row .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 0;
+    }
+
+    .chip {
+      padding: 4px 0;
+      margin-right: 16px;
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0;
+      transition: color 0.15s;
+    }
+
+    .chip:hover { color: var(--ink-mid); }
+    .chip.active { color: var(--ink); }
+
+    .chip.active.cat-cardio { color: var(--cat-cardio); }
+    .chip.active.cat-strength { color: var(--cat-strength); }
+    .chip.active.cat-core { color: var(--cat-core); }
+    .chip.active.cat-mobility { color: var(--cat-mobility); }
+    .chip.active.cat-breath { color: var(--cat-breath); }
+
+    .chip .num {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .shake-actions {
+      display: flex;
+      gap: 28px;
+      align-items: baseline;
+      margin-top: 28px;
+    }
+
+    .btn-shake {
+      position: relative;
+      color: var(--red);
+      font-family: var(--font);
+      font-size: 32px;
+      font-style: italic;
+      font-weight: 400;
+      padding: 4px 0;
+      letter-spacing: -0.01em;
+      transition: color 0.15s;
+    }
+
+    .btn-shake:hover { color: var(--red-light); }
+
+    .btn-shake.shaking { animation: jitter 0.35s; }
+    @keyframes jitter {
+      0%, 100% { transform: translate(0, 0) rotate(0); }
+      20% { transform: translate(-2px, -1px) rotate(-1deg); }
+      40% { transform: translate(2px, 1px) rotate(1.5deg); }
+      60% { transform: translate(-1px, 2px) rotate(-1deg); }
+      80% { transform: translate(1px, -1px) rotate(0.5deg); }
+    }
+
+    .chip-row-size {
+      grid-template-columns: 80px 1fr auto;
+    }
+
+    .more-link {
+      justify-self: end;
+      padding: 4px 0;
+      color: var(--ink-light);
+      font-family: var(--font);
+      font-size: 14px;
+      font-style: italic;
+      transition: color 0.15s;
+    }
+    .more-link:hover { color: var(--ink); }
+
+    .advanced {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.35s var(--ease), opacity 0.25s var(--ease), margin-top 0.3s var(--ease);
+    }
+    .advanced.open {
+      max-height: 400px;
+      opacity: 1;
+      margin-top: 10px;
+    }
+
+    /* Archive */
+    .archive {
+      margin-top: 48px;
+    }
+
+    .archive-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .archive-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .archive-row {
+      display: grid;
+      grid-template-columns: 90px 1fr auto;
+      align-items: end;
+      gap: 20px;
+      padding: 14px 0;
+      border-top: 1px solid var(--rule);
+    }
+
+    .archive-row:last-child {
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .archive-date {
+      color: var(--ink-mid);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+      padding-bottom: 2px;
+    }
+
+    .archive-spark {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      min-height: 32px;
+    }
+
+    .archive-spark .bar {
+      width: 4px;
+      border-radius: 1px;
+    }
+
+    .archive-spark .empty {
+      color: var(--ink-faint);
+      font-family: var(--font);
+      font-size: 13px;
+      font-style: italic;
+      padding-bottom: 4px;
+    }
+
+    .archive-meta {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+      text-align: right;
+      padding-bottom: 2px;
+      white-space: nowrap;
+    }
+
+    .archive-footer {
+      margin-top: 28px;
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+      text-align: center;
+    }
+
+    /* ———————————————————————————————————————————————— */
+    /* PREVIEW */
+    /* ———————————————————————————————————————————————— */
+    #view-preview, #view-day {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 24px 64px;
+    }
+    @media (min-width: 700px) {
+      #view-preview, #view-day { padding: 0 40px 64px; }
+    }
+
+    .day-hero {
+      margin-top: 28px;
+      padding: 22px 0 18px;
+      border-top: 1px solid var(--rule);
+    }
+
+    .day-hero-spark {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      min-height: 48px;
+    }
+
+    .day-hero-spark .bar {
+      width: 7px;
+      border-radius: 1px;
+      animation: barRise 0.6s var(--ease) both;
+      transform-origin: bottom;
+    }
+
+    .day-group {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 20px;
+      padding: 20px 0;
+      border-top: 1px solid var(--rule);
+      align-items: start;
+      animation: fadeSlideIn 0.35s var(--ease) both;
+    }
+
+    .day-group:last-child {
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .day-group-time {
+      color: var(--ink-mid);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+      font-variant-numeric: tabular-nums;
+      padding-top: 8px;
+    }
+
+    .day-group-snacks {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .day-snack {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 4px 0;
+    }
+
+    .day-bar {
+      display: inline-block;
+      width: 4px;
+      background: var(--ink-faint);
+      flex-shrink: 0;
+    }
+
+    .day-bar[data-int="1"] { height: 10px; }
+    .day-bar[data-int="2"] { height: 18px; }
+    .day-bar[data-int="3"] { height: 26px; }
+
+    .day-bar.cat-cardio { background: var(--cat-cardio); }
+    .day-bar.cat-strength { background: var(--cat-strength); }
+    .day-bar.cat-core { background: var(--cat-core); }
+    .day-bar.cat-mobility { background: var(--cat-mobility); }
+    .day-bar.cat-breath { background: var(--cat-breath); }
+
+    .day-snack-name {
+      font-family: var(--font);
+      font-size: 20px;
+      font-style: italic;
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+
+    .preview-header {
+      padding-top: 40px;
+      margin-bottom: 32px;
+    }
+
+    .back-btn {
+      display: inline-block;
+      padding: 10px 12px 10px 0;
+      color: var(--ink-light);
+      font-family: var(--font);
+      font-size: 15px;
+      transition: color 0.15s;
+    }
+    .back-btn:hover { color: var(--ink); }
+
+    .preview-title {
+      margin-top: 20px;
+      font-family: var(--font);
+      font-size: 42px;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.05;
+    }
+
+    .preview-sub {
+      margin-top: 10px;
+      color: var(--ink-mid);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.02em;
+    }
+
+    .preview-list {
+      margin-top: 28px;
+      border-top: 1px solid var(--rule);
+    }
+
+    .preview-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      align-items: baseline;
+      gap: 18px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--rule);
+      animation: fadeSlideIn 0.35s var(--ease) both;
+    }
+
+    .preview-item .idx {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+      align-self: start;
+      padding-top: 6px;
+    }
+
+    .preview-item .body .name {
+      font-family: var(--font);
+      font-size: 22px;
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.1;
+    }
+
+    .preview-item .body .meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+      color: var(--ink-mid);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+    }
+
+    .preview-item .duration {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+      padding-top: 6px;
+    }
+
+    .cat-tag {
+      color: var(--ink-mid);
+    }
+    .cat-tag.cat-cardio { color: var(--cat-cardio); }
+    .cat-tag.cat-strength { color: var(--cat-strength); }
+    .cat-tag.cat-core { color: var(--cat-core); }
+    .cat-tag.cat-mobility { color: var(--cat-mobility); }
+    .cat-tag.cat-breath { color: var(--cat-breath); }
+
+    .int-pips {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .int-pips .pip {
+      width: 5px;
+      height: 5px;
+      background: var(--ink-faint);
+    }
+
+    .int-pips .pip.on { background: var(--ink-mid); }
+    .int-pips.cat-cardio .pip.on { background: var(--cat-cardio); }
+    .int-pips.cat-strength .pip.on { background: var(--cat-strength); }
+    .int-pips.cat-core .pip.on { background: var(--cat-core); }
+    .int-pips.cat-mobility .pip.on { background: var(--cat-mobility); }
+    .int-pips.cat-breath .pip.on { background: var(--cat-breath); }
+
+    .preview-total {
+      margin-top: 28px;
+      color: var(--ink-mid);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0;
+      text-align: right;
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 28px;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-top: 36px;
+    }
+
+    .btn-muted {
+      color: var(--ink-light);
+      font-family: var(--font);
+      font-size: 15px;
+      padding: 8px 0;
+      transition: color 0.15s;
+    }
+    .btn-muted:hover { color: var(--ink); }
+
+    .btn-begin {
+      color: var(--red);
+      font-family: var(--font);
+      font-size: 24px;
+      font-style: italic;
+      font-weight: 400;
+      padding: 6px 0;
+      transition: color 0.15s;
+    }
+    .btn-begin:hover { color: var(--red-light); }
+
+    /* ———————————————————————————————————————————————— */
+    /* TIMER */
+    /* ———————————————————————————————————————————————— */
+    #view-timer {
+      position: relative;
+      display: none;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    #view-timer.active { display: flex; }
+
+    .timer-topbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 28px;
+      z-index: 2;
+    }
+
+    .timer-step {
+      color: var(--ink-mid);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .timer-quit {
+      color: var(--ink-light);
+      font-family: var(--font);
+      font-size: 14px;
+      font-style: italic;
+      padding: 6px 0 6px 12px;
+      transition: color 0.15s;
+    }
+    .timer-quit:hover { color: var(--ink); }
+
+    .timer-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px 32px;
+      text-align: center;
+    }
+
+    .timer-category {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .timer-category.cat-cardio { color: var(--cat-cardio); }
+    .timer-category.cat-strength { color: var(--cat-strength); }
+    .timer-category.cat-core { color: var(--cat-core); }
+    .timer-category.cat-mobility { color: var(--cat-mobility); }
+    .timer-category.cat-breath { color: var(--cat-breath); }
+
+    .timer-name {
+      font-family: var(--font);
+      font-size: 56px;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.02;
+      letter-spacing: -0.01em;
+      max-width: 520px;
+    }
+
+    @media (max-width: 420px) {
+      .timer-name { font-size: 44px; }
+    }
+
+    .timer-intensity {
+      margin-top: 18px;
+      display: inline-flex;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .timer-intensity .pip {
+      width: 6px;
+      height: 6px;
+      background: var(--ink-faint);
+    }
+    .timer-intensity .pip.on { background: var(--ink); }
+
+    .timer-seconds-wrap {
+      margin-top: 56px;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .timer-seconds {
+      font-family: var(--font);
+      font-size: 180px;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+      color: var(--ink);
+    }
+
+    @media (max-width: 480px) {
+      .timer-seconds { font-size: 140px; }
+    }
+
+    .timer-seconds .s {
+      font-size: 40%;
+      color: var(--ink-light);
+      font-style: italic;
+      margin-left: 6px;
+      vertical-align: baseline;
+    }
+
+    .timer-progress {
+      position: relative;
+      width: min(420px, 80%);
+      height: 1px;
+      margin-top: 28px;
+      background: var(--rule);
+    }
+
+    .timer-progress-fill {
+      position: absolute;
+      inset: 0;
+      background: var(--red);
+      transform-origin: left center;
+      transform: scaleX(1);
+      transition: transform 0.9s linear;
+    }
+
+    .timer-progress-fill.cat-cardio { background: var(--cat-cardio); }
+    .timer-progress-fill.cat-strength { background: var(--cat-strength); }
+    .timer-progress-fill.cat-core { background: var(--cat-core); }
+    .timer-progress-fill.cat-mobility { background: var(--cat-mobility); }
+    .timer-progress-fill.cat-breath { background: var(--cat-breath); }
+
+    .timer-next {
+      margin-top: 44px;
+      color: var(--ink-light);
+      font-family: var(--font);
+      font-size: 15px;
+      font-style: italic;
+    }
+
+    .timer-next .em-dash {
+      margin-right: 6px;
+      color: var(--ink-faint);
+    }
+
+    .timer-bottom {
+      display: flex;
+      justify-content: center;
+      gap: 36px;
+      padding: 0 24px 48px;
+    }
+
+    .timer-btn {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 12px 0;
+      transition: color 0.15s;
+      min-width: 56px;
+    }
+    .timer-btn:hover { color: var(--ink); }
+    .timer-btn.pause-active { color: var(--red); }
+
+    /* subtle grain on timer bg */
+    #view-timer::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(139, 0, 0, 0.02), transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(17, 17, 17, 0.02), transparent 50%);
+      z-index: 0;
+    }
+
+    .timer-topbar, .timer-stage, .timer-bottom { position: relative; z-index: 1; }
+
+    /* ———————————————————————————————————————————————— */
+    /* REST */
+    /* ———————————————————————————————————————————————— */
+    #view-rest {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100dvh;
+      padding: 24px;
+      text-align: center;
+    }
+    #view-rest.active { display: flex; }
+
+    .rest-label {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+
+    .rest-seconds {
+      font-family: var(--font);
+      font-size: 140px;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1;
+      color: var(--ink-mid);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rest-bar {
+      width: 80px;
+      height: 1px;
+      margin: 24px auto 32px;
+      background: var(--rule);
+      position: relative;
+    }
+
+    .rest-bar-fill {
+      position: absolute;
+      inset: 0;
+      background: var(--ink-mid);
+      transform-origin: left;
+      transform: scaleX(0);
+      transition: transform 1s linear;
+    }
+
+    .rest-next {
+      color: var(--ink-mid);
+      font-family: var(--font);
+      font-size: 18px;
+      font-style: italic;
+    }
+    .rest-next-name {
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* ———————————————————————————————————————————————— */
+    /* DONE */
+    /* ———————————————————————————————————————————————— */
+    #view-done {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 24px 64px;
+    }
+    @media (min-width: 700px) {
+      #view-done { padding: 0 40px 64px; }
+    }
+
+    .done-wrap {
+      padding-top: 96px;
+      text-align: center;
+    }
+
+    .done-label {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+      animation: fadeSlideIn 0.5s var(--ease) both;
+    }
+
+    .done-title {
+      font-family: var(--font);
+      font-size: 52px;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1;
+      color: var(--ink);
+      animation: fadeSlideIn 0.6s 0.1s var(--ease) both;
+    }
+
+    .done-dot {
+      display: inline-block;
+      color: var(--red);
+    }
+
+    .done-summary {
+      margin-top: 36px;
+      padding: 24px 0;
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      animation: fadeSlideIn 0.7s 0.2s var(--ease) both;
+    }
+
+    .done-spark {
+      display: flex;
+      gap: 4px;
+      align-items: flex-end;
+      justify-content: center;
+      min-height: 40px;
+      margin-bottom: 20px;
+    }
+
+    .done-spark .bar {
+      width: 10px;
+      border-radius: 1px;
+    }
+
+    .done-list {
+      text-align: left;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .done-list-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 0;
+      color: var(--ink-mid);
+      font-family: var(--font);
+      font-size: 16px;
+      font-style: italic;
+    }
+
+    .done-list-item .meta {
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+      font-style: normal;
+    }
+
+    .done-stats {
+      margin-top: 20px;
+      color: var(--ink-light);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0;
+    }
+
+    .done-actions {
+      margin-top: 36px;
+      text-align: center;
+      animation: fadeSlideIn 0.8s 0.3s var(--ease) both;
+    }
+
+    .btn-return {
+      color: var(--red);
+      font-family: var(--font);
+      font-size: 22px;
+      font-style: italic;
+    }
+    .btn-return:hover { color: var(--red-light); }
+
+    /* ———————————————————————————————————————————————— */
+    /* TOAST */
+    /* ———————————————————————————————————————————————— */
+    .toast {
+      position: fixed;
+      z-index: 9999;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0));
+      left: 50%;
+      padding: 8px 20px;
+      border: 1px solid var(--rule);
+      opacity: 0;
+      pointer-events: none;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0;
+      transform: translateX(-50%) translateY(20px);
+      transition: opacity 0.3s, transform 0.3s var(--ease);
+      white-space: nowrap;
+    }
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ———————————————————————————————————————————————— */
+    /* ANIMATIONS */
+    /* ———————————————————————————————————————————————— */
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in { animation: fadeSlideIn 0.45s var(--ease) both; }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px dotted var(--rule);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink-mid);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0;
+    }
+
+    .legend-dot {
+      width: 7px;
+      height: 7px;
+    }
+
+    /* Small visual flourish */
+    .ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 8px 0;
+      color: var(--ink-faint);
+      font-family: var(--font);
+      font-style: italic;
+      font-size: 18px;
+      letter-spacing: 0.8em;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ———————————————— HOME ———————————————— -->
+<div id="view-home" class="view active">
+  <header class="home-header">
+    <h1>sna<span class="x">x</span></h1>
+    <p class="byline">a jar of one-minute exercises</p>
+    <p class="date" id="home-date"></p>
+  </header>
+
+  <section class="today-panel">
+    <div class="today-panel-head">
+      <span class="label">Today</span>
+      <span class="meta" id="today-meta">0 snacks</span>
+    </div>
+    <div class="today-spark" id="today-spark"></div>
+  </section>
+
+  <section class="picker">
+    <div class="chip-row chip-row-size">
+      <span class="row-label">Size</span>
+      <div class="chips">
+        <button class="chip" data-group="size" data-val="1"><span class="num">one</span></button>
+        <button class="chip active" data-group="size" data-val="3"><span class="num">three</span></button>
+        <button class="chip" data-group="size" data-val="5"><span class="num">five</span></button>
+      </div>
+      <button class="more-link" id="more-toggle">more…</button>
+    </div>
+
+    <div class="advanced" id="advanced">
+      <div class="chip-row">
+        <span class="row-label">Heat</span>
+        <div class="chips">
+          <button class="chip active" data-group="intensity" data-val="any">any</button>
+          <button class="chip" data-group="intensity" data-val="1">easy</button>
+          <button class="chip" data-group="intensity" data-val="2">medium</button>
+          <button class="chip" data-group="intensity" data-val="3">hard</button>
+        </div>
+      </div>
+
+      <div class="chip-row">
+        <span class="row-label">Flavor</span>
+        <div class="chips">
+          <button class="chip active" data-group="category" data-val="any">any</button>
+          <button class="chip" data-group="category" data-val="cardio">cardio</button>
+          <button class="chip" data-group="category" data-val="strength">strength</button>
+          <button class="chip" data-group="category" data-val="core">core</button>
+          <button class="chip" data-group="category" data-val="mobility">mobility</button>
+          <button class="chip" data-group="category" data-val="breath">breath</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="shake-actions">
+      <button class="btn-shake" id="shake-btn">snack!</button>
+    </div>
+  </section>
+
+  <section class="archive">
+    <div class="archive-head">
+      <span class="section-label">Archive</span>
+      <span class="section-label" id="archive-stats">— · —</span>
+    </div>
+
+    <div class="archive-list" id="archive-list"></div>
+
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background: var(--cat-cardio)"></span>cardio</span>
+      <span class="legend-item"><span class="legend-dot" style="background: var(--cat-strength)"></span>strength</span>
+      <span class="legend-item"><span class="legend-dot" style="background: var(--cat-core)"></span>core</span>
+      <span class="legend-item"><span class="legend-dot" style="background: var(--cat-mobility)"></span>mobility</span>
+      <span class="legend-item"><span class="legend-dot" style="background: var(--cat-breath)"></span>breath</span>
+    </div>
+  </section>
+</div>
+
+<!-- ———————————————— DAY DETAIL ———————————————— -->
+<div id="view-day" class="view">
+  <div class="preview-header">
+    <button class="back-btn" data-action="home">← back</button>
+    <h2 class="preview-title" id="day-title">—</h2>
+    <p class="preview-sub" id="day-sub">—</p>
+  </div>
+
+  <div class="day-hero">
+    <div class="day-hero-spark" id="day-hero-spark"></div>
+  </div>
+
+  <div class="preview-list" id="day-list"></div>
+</div>
+
+<!-- ———————————————— PREVIEW ———————————————— -->
+<div id="view-preview" class="view">
+  <div class="preview-header">
+    <button class="back-btn" data-action="home">← back to the jar</button>
+    <h2 class="preview-title" id="preview-title">three from the jar</h2>
+    <p class="preview-sub" id="preview-sub">shake · any flavor · any heat</p>
+  </div>
+
+  <div class="preview-list" id="preview-list"></div>
+
+  <p class="preview-total" id="preview-total"></p>
+
+  <div class="preview-actions">
+    <button class="btn-muted" id="reshake-btn">shake again</button>
+    <button class="btn-begin" id="begin-btn">begin →</button>
+  </div>
+</div>
+
+<!-- ———————————————— TIMER ———————————————— -->
+<div id="view-timer" class="view">
+  <div class="timer-topbar">
+    <span class="timer-step" id="timer-step">snack 1 / 3</span>
+    <button class="timer-quit" id="timer-quit">quit</button>
+  </div>
+
+  <div class="timer-stage">
+    <p class="timer-category" id="timer-category">strength</p>
+    <h2 class="timer-name" id="timer-name">kettlebell swing</h2>
+    <div class="timer-intensity" id="timer-intensity"></div>
+
+    <div class="timer-seconds-wrap">
+      <span class="timer-seconds" id="timer-seconds">60<span class="s">s</span></span>
+    </div>
+
+    <div class="timer-progress">
+      <div class="timer-progress-fill" id="timer-fill"></div>
+    </div>
+
+    <p class="timer-next" id="timer-next"><span class="em-dash">—</span>next: ring row</p>
+  </div>
+
+  <div class="timer-bottom">
+    <button class="timer-btn" id="btn-prev">prev</button>
+    <button class="timer-btn" id="btn-pause">pause</button>
+    <button class="timer-btn" id="btn-skip">skip</button>
+  </div>
+</div>
+
+<!-- ———————————————— REST ———————————————— -->
+<div id="view-rest" class="view">
+  <p class="rest-label">rest · breathe</p>
+  <p class="rest-seconds" id="rest-seconds">10</p>
+  <div class="rest-bar"><div class="rest-bar-fill" id="rest-fill"></div></div>
+  <p class="rest-next">next — <span class="rest-next-name" id="rest-next-name">ring row</span></p>
+</div>
+
+<!-- ———————————————— DONE ———————————————— -->
+<div id="view-done" class="view">
+  <div class="done-wrap">
+    <p class="done-label">well done<span class="done-dot"> ·</span></p>
+    <h2 class="done-title" id="done-title">three complete</h2>
+
+    <div class="done-summary">
+      <div class="done-spark" id="done-spark"></div>
+      <div class="done-list" id="done-list"></div>
+      <p class="done-stats" id="done-stats"></p>
+    </div>
+
+    <div class="done-actions">
+      <button class="btn-return" id="btn-return">back to the jar →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ———————————————————————————————————————————————— */
+/* EXERCISE LIBRARY                                   */
+/* ———————————————————————————————————————————————— */
+const EXERCISES = [
+  // cardio
+  { id: "sprint",         name: "sprint in place",   category: "cardio",   intensity: 3, cue: "knees high, pump arms" },
+  { id: "burpees",        name: "burpees",           category: "cardio",   intensity: 3, cue: "chest to floor, jump tall" },
+  { id: "jump-rope",      name: "jump rope",         category: "cardio",   intensity: 2, cue: "real rope or imagined" },
+  { id: "mountain",       name: "mountain climbers", category: "cardio",   intensity: 2, cue: "hips low, knees quick" },
+  { id: "high-knees",     name: "high knees",        category: "cardio",   intensity: 2, cue: "drive the knee up" },
+  // strength
+  { id: "pushup",         name: "pushups",           category: "strength", intensity: 2, cue: "elbows at 45°" },
+  { id: "squat",          name: "air squats",        category: "strength", intensity: 2, cue: "sit back, chest up" },
+  { id: "kb-swing",       name: "kettlebell swing",  category: "strength", intensity: 3, cue: "hinge, drive hips" },
+  { id: "ring-row",       name: "ring row",          category: "strength", intensity: 2, cue: "pull to the ribs" },
+  { id: "lunge",          name: "walking lunge",     category: "strength", intensity: 2, cue: "back knee kisses floor" },
+  // core
+  { id: "plank",          name: "plank",             category: "core",     intensity: 2, cue: "ribs down, glutes on" },
+  { id: "hollow",         name: "hollow hold",       category: "core",     intensity: 3, cue: "low back glued down" },
+  { id: "side-plank",     name: "side plank",        category: "core",     intensity: 2, cue: "stack the hips" },
+  { id: "bird-dog",       name: "bird dog",          category: "core",     intensity: 1, cue: "slow, opposite limbs" },
+  { id: "dead-bug",       name: "dead bug",          category: "core",     intensity: 1, cue: "ribs heavy, breathe" },
+  // mobility
+  { id: "hip-opener",     name: "hip opener flow",   category: "mobility", intensity: 1, cue: "90/90 to pigeon" },
+  { id: "cat-cow",        name: "cat-cow",           category: "mobility", intensity: 1, cue: "breath leads spine" },
+  { id: "thread-needle",  name: "thread the needle", category: "mobility", intensity: 1, cue: "rotate from mid-back" },
+  { id: "foam-roll",      name: "foam rolling",      category: "mobility", intensity: 1, cue: "linger on the knot" },
+  { id: "shoulder-rolls", name: "shoulder circles",  category: "mobility", intensity: 1, cue: "slow, huge arcs" },
+  // breath
+  { id: "box",            name: "box breathing",     category: "breath",   intensity: 1, cue: "4 in · 4 hold · 4 out · 4 hold" },
+  { id: "478",            name: "4-7-8 breath",      category: "breath",   intensity: 1, cue: "inhale 4 · hold 7 · out 8" },
+];
+
+/* ———————————————————————————————————————————————— */
+/* STATE                                              */
+/* ———————————————————————————————————————————————— */
+const SNACK_DURATION = 60;
+const REST_DURATION = 10;
+
+const state = {
+  filters: { size: 3, intensity: "any", category: "any" },
+  stack: [],              // currently-previewed stack
+  runIdx: 0,
+  secondsLeft: SNACK_DURATION,
+  paused: false,
+  timerHandle: null,
+  restHandle: null,
+  completed: [],          // snacks from the current run
+  history: seedHistory(), // [{dateISO, snacks: [{...}]}]
+};
+
+function seedHistory() {
+  const today = new Date();
+  const dayStart = (n) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - n);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+  const at = (d, h, m) => {
+    const t = new Date(d);
+    t.setHours(h, m, 0, 0);
+    return t.toISOString();
+  };
+  const iso = d => d.toISOString().slice(0, 10);
+
+  const d1 = dayStart(1);
+  const d2 = dayStart(2);
+  const d3 = dayStart(3);
+  const d4 = dayStart(4);
+  const d5 = dayStart(5);
+  const d6 = dayStart(6);
+  const d7 = dayStart(7);
+
+  return [
+    { date: iso(d1), snacks: [
+      snap("kb-swing",  at(d1, 7, 12),  "d1-a"),
+      snap("box",       at(d1, 8, 45),  "d1-b"),
+      snap("plank",     at(d1, 10, 30), "d1-c"),
+      snap("squat",     at(d1, 10, 30), "d1-c"),
+      snap("foam-roll", at(d1, 10, 30), "d1-c"),
+      snap("burpees",   at(d1, 14, 20), "d1-d"),
+      snap("mountain",  at(d1, 14, 20), "d1-d"),
+      snap("hollow",    at(d1, 14, 20), "d1-d"),
+    ]},
+    { date: iso(d2), snacks: [
+      snap("pushup",   at(d2, 8, 15),  "d2-a"),
+      snap("cat-cow",  at(d2, 8, 15),  "d2-a"),
+      snap("ring-row", at(d2, 8, 15),  "d2-a"),
+    ]},
+    { date: iso(d3), snacks: [
+      snap("sprint",     at(d3, 6, 45),  "d3-a"),
+      snap("plank",      at(d3, 6, 45),  "d3-a"),
+      snap("lunge",      at(d3, 6, 45),  "d3-a"),
+      snap("box",        at(d3, 11, 15), "d3-b"),
+      snap("side-plank", at(d3, 11, 15), "d3-b"),
+      snap("hip-opener", at(d3, 11, 15), "d3-b"),
+      snap("burpees",    at(d3, 11, 15), "d3-b"),
+      snap("squat",      at(d3, 11, 15), "d3-b"),
+      snap("mountain",   at(d3, 15, 25), "d3-c"),
+      snap("kb-swing",   at(d3, 18, 40), "d3-d"),
+      snap("hollow",     at(d3, 18, 40), "d3-d"),
+      snap("478",        at(d3, 18, 40), "d3-d"),
+    ]},
+    { date: iso(d4), snacks: [] },
+    { date: iso(d5), snacks: [
+      snap("pushup",    at(d5, 7, 30), "d5-a"),
+      snap("ring-row",  at(d5, 7, 30), "d5-a"),
+      snap("bird-dog",  at(d5, 7, 30), "d5-a"),
+      snap("box",       at(d5, 7, 30), "d5-a"),
+      snap("foam-roll", at(d5, 7, 30), "d5-a"),
+    ]},
+    { date: iso(d6), snacks: [
+      snap("burpees",  at(d6, 9, 15), "d6-a"),
+      snap("hollow",   at(d6, 9, 15), "d6-a"),
+      snap("kb-swing", at(d6, 9, 15), "d6-a"),
+    ]},
+    { date: iso(d7), snacks: [
+      snap("sprint",     at(d7, 6, 50),  "d7-a"),
+      snap("squat",      at(d7, 6, 50),  "d7-a"),
+      snap("plank",      at(d7, 6, 50),  "d7-a"),
+      snap("cat-cow",    at(d7, 13, 45), "d7-b"),
+      snap("box",        at(d7, 17, 40), "d7-c"),
+      snap("pushup",     at(d7, 17, 40), "d7-c"),
+      snap("side-plank", at(d7, 17, 40), "d7-c"),
+    ]},
+  ];
+}
+
+function snap(id, at, stack) {
+  const e = EXERCISES.find(x => x.id === id);
+  return { id: e.id, name: e.name, category: e.category, intensity: e.intensity, at: at || null, stack: stack || null };
+}
+
+/* ———————————————————————————————————————————————— */
+/* HELPERS                                            */
+/* ———————————————————————————————————————————————— */
+const $ = id => document.getElementById(id);
+
+function esc(v) {
+  const d = document.createElement("div");
+  d.textContent = v == null ? "" : String(v);
+  return d.innerHTML;
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("visible"), 1800);
+}
+
+function showView(name) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  $("view-" + name).classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+function formatDateShort(iso) {
+  const d = new Date(iso + "T00:00:00");
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function todayEntry() {
+  let entry = state.history.find(e => e.date === todayISO());
+  if (!entry) {
+    entry = { date: todayISO(), snacks: [] };
+    state.history.unshift(entry);
+  }
+  return entry;
+}
+
+function pickRandom(arr, n) {
+  const out = [];
+  const pool = [...arr];
+  for (let i = 0; i < n && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    out.push(pool.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
+function categoryLabel(c) {
+  return c;
+}
+
+function intensityPips(n, category) {
+  let html = '';
+  for (let i = 1; i <= 3; i++) {
+    html += `<span class="pip${i <= n ? ' on' : ''}"></span>`;
+  }
+  return html;
+}
+
+/* ———————————————————————————————————————————————— */
+/* HOME RENDER                                        */
+/* ———————————————————————————————————————————————— */
+function renderHome() {
+  renderDate();
+  renderTodaySpark();
+  renderArchive();
+}
+
+function renderDate() {
+  const d = new Date();
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  $("home-date").textContent = `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+}
+
+function renderTodaySpark() {
+  const entry = todayEntry();
+  const spark = $("today-spark");
+  const meta = $("today-meta");
+  const panel = document.querySelector(".today-panel");
+
+  if (entry.snacks.length === 0) {
+    spark.innerHTML = "";
+    meta.textContent = "0 snacks";
+    panel.classList.remove("clickable");
+    return;
+  }
+
+  const intensitySum = entry.snacks.reduce((s, x) => s + x.intensity, 0);
+  meta.textContent = `${entry.snacks.length} snack${entry.snacks.length === 1 ? '' : 's'} · load ${intensitySum}`;
+  panel.classList.add("clickable");
+
+  const maxHeight = 40;
+  spark.innerHTML = entry.snacks.map((s, i) => {
+    const h = (s.intensity / 3) * maxHeight;
+    return `<div class="bar" style="height:${h}px; background: var(--cat-${s.category}); animation-delay: ${i * 0.04}s"></div>`;
+  }).join("");
+}
+
+function filteredPool() {
+  const { intensity, category } = state.filters;
+  return EXERCISES.filter(e =>
+    (category === "any" || e.category === category) &&
+    (intensity === "any" || e.intensity === parseInt(intensity))
+  );
+}
+
+function renderArchive() {
+  const list = $("archive-list");
+  const weekSnacks = state.history.reduce((s, e) => s + e.snacks.length, 0);
+  const weekLoad = state.history.reduce((s, e) => s + e.snacks.reduce((x,y)=>x+y.intensity,0), 0);
+  $("archive-stats").textContent = `7d · ${weekSnacks} snacks · load ${weekLoad}`;
+
+  list.innerHTML = state.history.slice(0, 7).map(entry => {
+    const n = entry.snacks.length;
+    const totalInt = entry.snacks.reduce((s,x)=>s+x.intensity,0);
+    let sparkHtml = "";
+    if (n === 0) {
+      sparkHtml = `<span class="empty">fast</span>`;
+    } else {
+      const maxH = 30;
+      sparkHtml = entry.snacks.map(s => {
+        const h = (s.intensity / 3) * maxH;
+        return `<div class="bar" style="height:${h}px; background: var(--cat-${s.category})"></div>`;
+      }).join("");
+    }
+    const metaText = n === 0 ? "—" : `${n} · load ${totalInt}`;
+    const classes = "archive-row" + (n > 0 ? " has-snacks" : "");
+    return `
+      <div class="${classes}" data-date="${esc(entry.date)}">
+        <span class="archive-date">${formatDateShort(entry.date)}</span>
+        <div class="archive-spark">${sparkHtml}</div>
+        <span class="archive-meta">${metaText}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ———————————————————————————————————————————————— */
+/* CHIPS                                              */
+/* ———————————————————————————————————————————————— */
+function attachChipHandlers() {
+  document.querySelectorAll(".chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const group = chip.dataset.group;
+      const val = chip.dataset.val;
+      state.filters[group] = group === "size" ? parseInt(val) : val;
+
+      document.querySelectorAll(`.chip[data-group="${group}"]`).forEach(c => {
+        c.classList.remove("active");
+        c.classList.remove("cat-cardio","cat-strength","cat-core","cat-mobility","cat-breath");
+      });
+      chip.classList.add("active");
+      if (group === "category" && val !== "any") {
+        chip.classList.add(`cat-${val}`);
+      }
+    });
+  });
+}
+
+/* ———————————————————————————————————————————————— */
+/* SHAKE / PREVIEW                                    */
+/* ———————————————————————————————————————————————— */
+function shakeJar() {
+  const pool = filteredPool();
+  if (pool.length === 0) {
+    toast("no snacks match those filters");
+    return;
+  }
+  const size = state.filters.size;
+  const picks = pickRandom(pool, Math.min(size, pool.length));
+  // fill if pool smaller than size
+  while (picks.length < size) {
+    picks.push(pool[Math.floor(Math.random() * pool.length)]);
+  }
+  state.stack = picks.map(e => ({ id: e.id, name: e.name, category: e.category, intensity: e.intensity, cue: e.cue }));
+
+  const btn = $("shake-btn");
+  btn.classList.remove("shaking");
+  // force reflow
+  void btn.offsetWidth;
+  btn.classList.add("shaking");
+
+  setTimeout(() => {
+    renderPreview();
+    showView("preview");
+  }, 280);
+}
+
+function renderPreview() {
+  const size = state.stack.length;
+  const sizeWord = ["", "one", "two", "three", "four", "five"][size] || size;
+  $("preview-title").textContent = `${sizeWord} from the jar`;
+
+  const { intensity, category } = state.filters;
+  const subParts = [];
+  subParts.push(`shake · ${category === "any" ? "any flavor" : category}`);
+  subParts.push(intensity === "any" ? "any heat" : `${["","easy","medium","hard"][intensity]} heat`);
+  $("preview-sub").textContent = subParts.join(" · ");
+
+  const list = $("preview-list");
+  list.innerHTML = state.stack.map((s, i) => `
+    <div class="preview-item" style="animation-delay: ${i * 0.06}s">
+      <span class="idx">${String(i + 1).padStart(2, "0")}</span>
+      <div class="body">
+        <p class="name">${esc(s.name)}</p>
+        <div class="meta">
+          <span class="cat-tag cat-${s.category}">${esc(s.category)}</span>
+          <span class="int-pips cat-${s.category}">${intensityPips(s.intensity)}</span>
+          <span style="color: var(--ink-light)">${esc(s.cue)}</span>
+        </div>
+      </div>
+      <span class="duration">60s</span>
+    </div>
+  `).join("");
+
+  const totalWorkSec = size * SNACK_DURATION;
+  const totalRestSec = Math.max(0, (size - 1) * REST_DURATION);
+  const totalSec = totalWorkSec + totalRestSec;
+  const mm = Math.floor(totalSec / 60);
+  const ss = totalSec % 60;
+  $("preview-total").textContent = `total ${mm}m ${ss.toString().padStart(2,"0")}s · ${totalWorkSec}s work · ${totalRestSec}s rest`;
+}
+
+/* ———————————————————————————————————————————————— */
+/* TIMER                                              */
+/* ———————————————————————————————————————————————— */
+function beginRun() {
+  state.runIdx = 0;
+  state.completed = [];
+  state.paused = false;
+  state.currentStackId = "r-" + Date.now();
+  showView("timer");
+  startSnack();
+}
+
+function startSnack() {
+  const snack = state.stack[state.runIdx];
+  const cat = snack.category;
+
+  $("timer-step").textContent = `snack ${state.runIdx + 1} / ${state.stack.length}`;
+  const catEl = $("timer-category");
+  catEl.textContent = snack.category;
+  catEl.className = "timer-category cat-" + cat;
+
+  $("timer-name").textContent = snack.name;
+
+  const pips = $("timer-intensity");
+  pips.innerHTML = "";
+  for (let i = 1; i <= 3; i++) {
+    const pip = document.createElement("span");
+    pip.className = "pip" + (i <= snack.intensity ? " on" : "");
+    pips.appendChild(pip);
+  }
+
+  const nextSnack = state.stack[state.runIdx + 1];
+  $("timer-next").innerHTML = nextSnack
+    ? `<span class="em-dash">—</span>next: ${esc(nextSnack.name)}`
+    : `<span class="em-dash">—</span>last one. finish strong.`;
+
+  const fill = $("timer-fill");
+  fill.className = "timer-progress-fill cat-" + cat;
+  fill.style.transition = "none";
+  fill.style.transform = "scaleX(1)";
+  void fill.offsetWidth;
+  fill.style.transition = "";
+
+  state.secondsLeft = SNACK_DURATION;
+  state.paused = false;
+  $("btn-pause").textContent = "pause";
+  $("btn-pause").classList.remove("pause-active");
+
+  updateTimerDisplay();
+  clearInterval(state.timerHandle);
+  state.timerHandle = setInterval(tickSnack, 1000);
+}
+
+function tickSnack() {
+  if (state.paused) return;
+  state.secondsLeft--;
+  updateTimerDisplay();
+  if (state.secondsLeft <= 0) {
+    completeCurrentSnack();
+  }
+}
+
+function updateTimerDisplay() {
+  const s = state.secondsLeft;
+  const display = s >= 60 ? `1:00` : (s < 10 ? `0${s}` : String(s));
+  $("timer-seconds").innerHTML = `${display}<span class="s">${s >= 60 ? 'min' : 's'}</span>`;
+  const pct = 1 - (SNACK_DURATION - s) / SNACK_DURATION;
+  $("timer-fill").style.transform = `scaleX(${pct})`;
+}
+
+function completeCurrentSnack() {
+  clearInterval(state.timerHandle);
+  state.completed.push({ ...state.stack[state.runIdx], at: new Date().toISOString(), stack: state.currentStackId });
+
+  const isLast = state.runIdx >= state.stack.length - 1;
+  if (isLast) {
+    finishRun();
+  } else {
+    state.runIdx++;
+    startRest();
+  }
+}
+
+function startRest() {
+  showView("rest");
+  const next = state.stack[state.runIdx];
+  $("rest-next-name").textContent = next.name;
+
+  let s = REST_DURATION;
+  $("rest-seconds").textContent = s;
+  const fill = $("rest-fill");
+  fill.style.transition = "none";
+  fill.style.transform = "scaleX(0)";
+  void fill.offsetWidth;
+  fill.style.transition = `transform ${REST_DURATION}s linear`;
+  fill.style.transform = "scaleX(1)";
+
+  clearInterval(state.restHandle);
+  state.restHandle = setInterval(() => {
+    s--;
+    $("rest-seconds").textContent = s;
+    if (s <= 0) {
+      clearInterval(state.restHandle);
+      showView("timer");
+      startSnack();
+    }
+  }, 1000);
+}
+
+function finishRun() {
+  // Add snacks to today's entry
+  const entry = todayEntry();
+  entry.snacks.push(...state.completed);
+
+  renderDone();
+  showView("done");
+}
+
+function renderDone() {
+  const size = state.completed.length;
+  const sizeWord = ["", "one", "two", "three", "four", "five"][size] || size;
+  $("done-title").textContent = `${sizeWord} complete`;
+
+  const totalInt = state.completed.reduce((s,x)=>s+x.intensity,0);
+  const secs = size * SNACK_DURATION + Math.max(0,(size-1)) * REST_DURATION;
+  $("done-stats").textContent = `load ${totalInt} · ${Math.floor(secs/60)}m ${secs%60}s total`;
+
+  // mini spark
+  const spark = $("done-spark");
+  spark.innerHTML = state.completed.map(s => {
+    const h = (s.intensity / 3) * 40;
+    return `<div class="bar" style="height:${h}px; background: var(--cat-${s.category})"></div>`;
+  }).join("");
+
+  // list
+  const list = $("done-list");
+  list.innerHTML = state.completed.map((s, i) => `
+    <div class="done-list-item">
+      <span>${String(i+1).padStart(2,"0")}. ${esc(s.name)}</span>
+      <span class="meta cat-tag cat-${s.category}">${esc(s.category)} · ${s.intensity}</span>
+    </div>
+  `).join("");
+}
+
+/* ———————————————————————————————————————————————— */
+/* TIMER CONTROLS                                     */
+/* ———————————————————————————————————————————————— */
+function togglePause() {
+  state.paused = !state.paused;
+  const btn = $("btn-pause");
+  btn.textContent = state.paused ? "resume" : "pause";
+  btn.classList.toggle("pause-active", state.paused);
+  const fill = $("timer-fill");
+  if (state.paused) {
+    fill.style.transition = "none";
+  } else {
+    fill.style.transition = "";
+  }
+}
+
+function skipSnack() {
+  completeCurrentSnack();
+}
+
+function prevSnack() {
+  if (state.runIdx > 0) {
+    state.runIdx--;
+    state.completed.pop();
+    clearInterval(state.timerHandle);
+    startSnack();
+  } else {
+    toast("already at the first snack");
+  }
+}
+
+function quitRun() {
+  if (state.completed.length > 0) {
+    if (!confirm("Quit? You've finished " + state.completed.length + " of " + state.stack.length + ". They'll still be logged.")) return;
+    const entry = todayEntry();
+    entry.snacks.push(...state.completed);
+  }
+  clearInterval(state.timerHandle);
+  clearInterval(state.restHandle);
+  renderHome();
+  showView("home");
+}
+
+/* ———————————————————————————————————————————————— */
+/* DAY DETAIL                                         */
+/* ———————————————————————————————————————————————— */
+function showDay(dateISO) {
+  const entry = state.history.find(e => e.date === dateISO) ||
+                (dateISO === todayISO() ? todayEntry() : null);
+  if (!entry || entry.snacks.length === 0) return;
+
+  const isToday = dateISO === todayISO();
+  const d = new Date(dateISO + "T00:00:00");
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  $("day-title").textContent = isToday ? "today" : days[d.getDay()].toLowerCase();
+
+  const n = entry.snacks.length;
+  const load = entry.snacks.reduce((s,x)=>s+x.intensity, 0);
+  $("day-sub").textContent = `${months[d.getMonth()]} ${d.getDate()} · ${n} snack${n===1?"":"s"} · load ${load}`;
+
+  const snacks = [...entry.snacks].sort((a, b) => {
+    if (!a.at) return 1;
+    if (!b.at) return -1;
+    return a.at.localeCompare(b.at);
+  });
+
+  const spark = $("day-hero-spark");
+  spark.innerHTML = snacks.map((s, i) => {
+    const h = (s.intensity / 3) * 48;
+    return `<div class="bar" style="height:${h}px; background: var(--cat-${s.category}); animation-delay: ${i * 0.04}s"></div>`;
+  }).join("");
+
+  const groups = groupByStack(snacks);
+  const list = $("day-list");
+  list.innerHTML = groups.map((g, gi) => `
+    <div class="day-group" style="animation-delay: ${gi * 0.05}s">
+      <div class="day-group-time">${formatTime(g.at)}</div>
+      <div class="day-group-snacks">
+        ${g.snacks.map(s => `
+          <div class="day-snack">
+            <span class="day-bar cat-${s.category}" data-int="${s.intensity}"></span>
+            <span class="day-snack-name">${esc(s.name)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `).join("");
+
+  showView("day");
+}
+
+function groupByStack(snacks) {
+  const groups = [];
+  let current = null;
+  for (const s of snacks) {
+    const key = s.stack || s.at || Math.random();
+    if (!current || current.key !== key) {
+      current = { key, at: s.at, snacks: [s] };
+      groups.push(current);
+    } else {
+      current.snacks.push(s);
+    }
+  }
+  return groups;
+}
+
+function formatTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? "pm" : "am";
+  h = h % 12 || 12;
+  return `${h}:${String(m).padStart(2,"0")}${ampm}`;
+}
+
+/* ———————————————————————————————————————————————— */
+/* WIRING                                             */
+/* ———————————————————————————————————————————————— */
+function init() {
+  attachChipHandlers();
+  renderHome();
+
+  $("shake-btn").addEventListener("click", shakeJar);
+  $("reshake-btn").addEventListener("click", () => {
+    shakeJar();
+  });
+  $("begin-btn").addEventListener("click", beginRun);
+  $("btn-pause").addEventListener("click", togglePause);
+  $("btn-skip").addEventListener("click", skipSnack);
+  $("btn-prev").addEventListener("click", prevSnack);
+  $("timer-quit").addEventListener("click", quitRun);
+  $("btn-return").addEventListener("click", () => {
+    renderHome();
+    showView("home");
+  });
+
+  document.querySelectorAll("[data-action='home']").forEach(btn => {
+    btn.addEventListener("click", () => showView("home"));
+  });
+
+  // More / less toggle
+  $("more-toggle").addEventListener("click", () => {
+    const advanced = $("advanced");
+    const isOpen = advanced.classList.toggle("open");
+    $("more-toggle").textContent = isOpen ? "less…" : "more…";
+  });
+
+  // Today panel click → today detail
+  document.querySelector(".today-panel").addEventListener("click", () => {
+    const entry = todayEntry();
+    if (entry.snacks.length > 0) showDay(todayISO());
+  });
+
+  // Archive row click → that day's detail
+  $("archive-list").addEventListener("click", e => {
+    const row = e.target.closest(".archive-row.has-snacks");
+    if (row) showDay(row.dataset.date);
+  });
+
+  // keyboard shortcuts
+  document.addEventListener("keydown", e => {
+    if (document.getElementById("view-timer").classList.contains("active")) {
+      if (e.key === " ") { e.preventDefault(); togglePause(); }
+      if (e.key === "ArrowRight") { skipSnack(); }
+      if (e.key === "ArrowLeft") { prevSnack(); }
+      if (e.key === "Escape") { quitRun(); }
+    }
+    if (document.getElementById("view-home").classList.contains("active")) {
+      if (e.key === " ") { e.preventDefault(); shakeJar(); }
+    }
+  });
+}
+
+init();
+</script>
+
+</body>
+</html>
