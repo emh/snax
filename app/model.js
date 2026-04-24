@@ -1,5 +1,4 @@
-export const CATEGORY_ORDER = ["cardio", "strength", "core", "mobility", "breath"];
-export const SIZE_VALUES = [1, 3, 5];
+export const CATEGORY_ORDER = ["cardio", "strength", "core", "mobility", "restore"];
 export const SIZE_LABELS = {
   1: "one",
   3: "three",
@@ -19,32 +18,132 @@ export const DEFAULT_FILTERS = {
 export const SNACK_DURATION = 60;
 export const REST_DURATION = 10;
 
-export const EXERCISES = [
-  { id: "sprint", name: "sprint in place", category: "cardio", intensity: 3, cue: "knees high, pump arms" },
-  { id: "burpees", name: "burpees", category: "cardio", intensity: 3, cue: "chest to floor, jump tall" },
-  { id: "jump-rope", name: "jump rope", category: "cardio", intensity: 2, cue: "real rope or imagined" },
-  { id: "mountain", name: "mountain climbers", category: "cardio", intensity: 2, cue: "hips low, knees quick" },
-  { id: "high-knees", name: "high knees", category: "cardio", intensity: 2, cue: "drive the knee up" },
-  { id: "pushup", name: "pushups", category: "strength", intensity: 2, cue: "elbows at 45 degrees" },
-  { id: "squat", name: "air squats", category: "strength", intensity: 2, cue: "sit back, chest up" },
-  { id: "kb-swing", name: "kettlebell swing", category: "strength", intensity: 3, cue: "hinge, drive hips" },
-  { id: "ring-row", name: "ring row", category: "strength", intensity: 2, cue: "pull to the ribs" },
-  { id: "lunge", name: "walking lunge", category: "strength", intensity: 2, cue: "back knee kisses floor" },
-  { id: "plank", name: "plank", category: "core", intensity: 2, cue: "ribs down, glutes on" },
-  { id: "hollow", name: "hollow hold", category: "core", intensity: 3, cue: "low back glued down" },
-  { id: "side-plank", name: "side plank", category: "core", intensity: 2, cue: "stack the hips" },
-  { id: "bird-dog", name: "bird dog", category: "core", intensity: 1, cue: "slow, opposite limbs" },
-  { id: "dead-bug", name: "dead bug", category: "core", intensity: 1, cue: "ribs heavy, breathe" },
-  { id: "hip-opener", name: "hip opener flow", category: "mobility", intensity: 1, cue: "90/90 to pigeon" },
-  { id: "cat-cow", name: "cat-cow", category: "mobility", intensity: 1, cue: "breath leads spine" },
-  { id: "thread-needle", name: "thread the needle", category: "mobility", intensity: 1, cue: "rotate from mid-back" },
-  { id: "foam-roll", name: "foam rolling", category: "mobility", intensity: 1, cue: "linger on the knot" },
-  { id: "shoulder-rolls", name: "shoulder circles", category: "mobility", intensity: 1, cue: "slow, huge arcs" },
-  { id: "box", name: "box breathing", category: "breath", intensity: 1, cue: "4 in, 4 hold, 4 out, 4 hold" },
-  { id: "478", name: "4-7-8 breath", category: "breath", intensity: 1, cue: "inhale 4, hold 7, out 8" },
+const DEFAULT_LIBRARY = [
+  { id: "squats", name: "squats", tagline: "hips back, chest proud", category: "strength", intensity: 2 },
+  { id: "pushups", name: "pushups", tagline: "long line, smooth press", category: "strength", intensity: 2 },
+  { id: "pullups", name: "pullups", tagline: "pull elbows to ribs", category: "strength", intensity: 3 },
+  { id: "situps", name: "situps", tagline: "peel up, lower slow", category: "core", intensity: 2 },
+  { id: "plank", name: "plank", tagline: "ribs down, glutes on", category: "core", intensity: 2 },
+  { id: "side-plank", name: "side plank", tagline: "stack hips, reach long", category: "core", intensity: 2 },
+  { id: "deep-squat", name: "deep squat", tagline: "sink low, breathe deep", category: "mobility", intensity: 1 },
+  { id: "dead-hang", name: "dead hang", tagline: "let shoulders lengthen", category: "mobility", intensity: 1 },
+  { id: "iso-lunge", name: "iso lunge", tagline: "freeze low, stay tall", category: "strength", intensity: 2 },
+  { id: "horse-stance", name: "horse stance", tagline: "wide base, steady breath", category: "strength", intensity: 2 },
+  { id: "wall-sit", name: "wall sit", tagline: "back flush, legs steady", category: "strength", intensity: 2 },
+  { id: "couch-stretch", name: "couch stretch", tagline: "open the front hip", category: "mobility", intensity: 1 },
+  { id: "cossack-squat", name: "cossack squat", tagline: "shift side to side", category: "mobility", intensity: 2 },
+  { id: "lunges", name: "lunges", tagline: "step long, stand strong", category: "strength", intensity: 2 },
+  { id: "foam-roll", name: "foam roll", tagline: "slow passes, pause on knots", category: "restore", intensity: 1 },
+  { id: "lacross-ball-massage", name: "lacross ball massage", tagline: "pin the spot and breathe", category: "restore", intensity: 1 },
+  { id: "breathwork", name: "breathwork", tagline: "slow inhale, slower exhale", category: "restore", intensity: 1 },
+  { id: "steel-club-mills", name: "steel club mills", tagline: "smooth circles, loose shoulders", category: "mobility", intensity: 2 },
+  { id: "steel-club-wrist-work", name: "steel club wrist work", tagline: "easy circles, supple wrists", category: "mobility", intensity: 1 },
+  { id: "rope-flow", name: "rope flow", tagline: "keep it loose and rhythmic", category: "mobility", intensity: 1 },
+  { id: "jump-rope", name: "jump rope", tagline: "light feet, easy bounce", category: "cardio", intensity: 2 },
+  { id: "fingertip-plank", name: "fingertip plank", tagline: "spread hands, brace lightly", category: "core", intensity: 3 },
+  { id: "underswitches", name: "underswitches", tagline: "thread through and stay light", category: "mobility", intensity: 2 },
+  { id: "crab-reaches", name: "crab reaches", tagline: "lift hips, reach long", category: "mobility", intensity: 2 },
+  { id: "burpees", name: "burpees", tagline: "down fast, jump tall", category: "cardio", intensity: 3 },
+  { id: "pogo-hops", name: "pogo hops", tagline: "quick springs off the floor", category: "cardio", intensity: 2 },
+  { id: "single-leg-deadlifts", name: "single leg deadlifts", tagline: "hinge long, balance steady", category: "strength", intensity: 2 },
+  { id: "split-squats", name: "split squats", tagline: "drop straight down", category: "strength", intensity: 2 },
+  { id: "iso-calf-raise", name: "iso calf raise", tagline: "rise high and hold", category: "strength", intensity: 1 },
+  { id: "pike-pulses", name: "pike pulses", tagline: "compress and pulse tall", category: "core", intensity: 2 },
+  { id: "hollow-rocks", name: "hollow rocks", tagline: "stay curved, rock small", category: "core", intensity: 3 },
+  { id: "rolling-getups", name: "rolling getups", tagline: "roll smooth, stand with control", category: "core", intensity: 2 },
+  { id: "single-leg-balance", name: "single leg balance", tagline: "soft knee, quiet foot", category: "mobility", intensity: 1 },
+  { id: "scapular-pushups", name: "scapular pushups", tagline: "glide shoulder blades", category: "strength", intensity: 1 },
+  { id: "serratus-punches", name: "serratus punches", tagline: "reach long from the ribs", category: "strength", intensity: 1 },
+  { id: "shadow-boxing", name: "shadow boxing", tagline: "snap punches, stay loose", category: "cardio", intensity: 2 },
+  { id: "hand-gripper", name: "hand gripper", tagline: "crush hard, release slow", category: "strength", intensity: 1 },
+  { id: "bear-squats", name: "bear squats", tagline: "hips low, legs driving", category: "strength", intensity: 2 },
+  { id: "90-90-hip-switches", name: "90/90 hip switches", tagline: "rotate cleanly through the hips", category: "mobility", intensity: 1 },
+  { id: "single-leg-glute-bridge", name: "single leg glute bridge", tagline: "drive heel, square hips", category: "strength", intensity: 2 },
+  { id: "handstand", name: "handstand", tagline: "stack tall, squeeze everything", category: "strength", intensity: 3 },
 ];
 
-const EXERCISE_BY_ID = new Map(EXERCISES.map((exercise) => [exercise.id, exercise]));
+function normalizeCategory(category) {
+  return CATEGORY_ORDER.includes(category) ? category : "mobility";
+}
+
+function normalizeIntensity(intensity) {
+  const value = Number(intensity);
+  if (value < 1) {
+    return 1;
+  }
+  if (value > 3) {
+    return 3;
+  }
+  return value || 1;
+}
+
+function slugify(text, fallback) {
+  const value = String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return value || fallback;
+}
+
+export function createDefaultLibrary() {
+  return DEFAULT_LIBRARY.map((exercise) => ({ ...exercise }));
+}
+
+export function createEmptyExercise() {
+  return {
+    id: `snack-${Date.now()}`,
+    name: "new snack",
+    tagline: "add a tagline",
+    category: "mobility",
+    intensity: 2,
+  };
+}
+
+export function hydrateExercise(exercise, index = 0) {
+  const source = exercise || {};
+  const name = String(source.name || "").trim() || `snack ${index + 1}`;
+  const id = String(source.id || "").trim() || slugify(name, `snack-${index + 1}`);
+
+  return {
+    id,
+    name,
+    tagline: String(source.tagline || source.cue || "").trim(),
+    category: normalizeCategory(String(source.category || "")),
+    intensity: normalizeIntensity(source.intensity),
+  };
+}
+
+export function hydrateLibrary(library) {
+  if (!Array.isArray(library)) {
+    return createDefaultLibrary();
+  }
+
+  const normalized = library
+    .filter((exercise) => exercise && typeof exercise === "object")
+    .map((exercise, index) => hydrateExercise(exercise, index));
+
+  return normalized.length > 0 ? normalized : createDefaultLibrary();
+}
+
+export function createSeedHistory() {
+  return [];
+}
+
+export function hydrateSnack(snack) {
+  const source = snack || {};
+
+  return {
+    id: String(source.id || ""),
+    name: String(source.name || "").trim(),
+    tagline: String(source.tagline || source.cue || "").trim(),
+    category: normalizeCategory(String(source.category || "")),
+    intensity: normalizeIntensity(source.intensity),
+    at: source.at ? String(source.at) : null,
+    stack: source.stack ? String(source.stack) : null,
+    skipped: Boolean(source.skipped),
+  };
+}
 
 export function toDateKey(date) {
   const year = date.getFullYear();
@@ -71,95 +170,6 @@ export function recentDateKeys(count, includeToday = false) {
   });
 }
 
-export function createLocalIso(dateKey, hours, minutes) {
-  const [year, month, day] = String(dateKey).split("-").map(Number);
-  return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString();
-}
-
-function buildSnack(id, at, stack) {
-  const exercise = EXERCISE_BY_ID.get(id);
-  return {
-    id: exercise.id,
-    name: exercise.name,
-    category: exercise.category,
-    intensity: exercise.intensity,
-    cue: exercise.cue,
-    at: at || null,
-    stack: stack || null,
-    skipped: false,
-  };
-}
-
-function buildRun(dateKey, hours, minutes, ids, stackId) {
-  const start = new Date(createLocalIso(dateKey, hours, minutes)).getTime();
-  return ids.map((id, index) => buildSnack(id, new Date(start + index * 70_000).toISOString(), stackId));
-}
-
-export function createSeedHistory() {
-  const [d1, d2, d3, d4, d5, d6, d7] = recentDateKeys(7, false);
-
-  return [
-    {
-      dateKey: d1,
-      snacks: [
-        ...buildRun(d1, 7, 12, ["kb-swing"], "d1-a"),
-        ...buildRun(d1, 8, 45, ["box"], "d1-b"),
-        ...buildRun(d1, 10, 30, ["plank", "squat", "foam-roll"], "d1-c"),
-        ...buildRun(d1, 14, 20, ["burpees", "mountain", "hollow"], "d1-d"),
-      ],
-    },
-    {
-      dateKey: d2,
-      snacks: [...buildRun(d2, 8, 15, ["pushup", "cat-cow", "ring-row"], "d2-a")],
-    },
-    {
-      dateKey: d3,
-      snacks: [
-        ...buildRun(d3, 6, 45, ["sprint", "plank", "lunge"], "d3-a"),
-        ...buildRun(d3, 11, 15, ["box", "side-plank", "hip-opener", "burpees", "squat"], "d3-b"),
-        ...buildRun(d3, 15, 25, ["mountain"], "d3-c"),
-        ...buildRun(d3, 18, 40, ["kb-swing", "hollow", "478"], "d3-d"),
-      ],
-    },
-    {
-      dateKey: d4,
-      snacks: [],
-    },
-    {
-      dateKey: d5,
-      snacks: [...buildRun(d5, 7, 30, ["pushup", "ring-row", "bird-dog", "box", "foam-roll"], "d5-a")],
-    },
-    {
-      dateKey: d6,
-      snacks: [...buildRun(d6, 9, 15, ["burpees", "hollow", "kb-swing"], "d6-a")],
-    },
-    {
-      dateKey: d7,
-      snacks: [
-        ...buildRun(d7, 6, 50, ["sprint", "squat", "plank"], "d7-a"),
-        ...buildRun(d7, 13, 45, ["cat-cow"], "d7-b"),
-        ...buildRun(d7, 17, 40, ["box", "pushup", "side-plank"], "d7-c"),
-      ],
-    },
-  ];
-}
-
-export function hydrateSnack(snack) {
-  const source = snack || {};
-  const exercise = EXERCISE_BY_ID.get(source.id) || {};
-  const intensity = Number(source.intensity || exercise.intensity || 1);
-  return {
-    id: String(source.id || exercise.id || ""),
-    name: String(source.name || exercise.name || ""),
-    category: String(source.category || exercise.category || "mobility"),
-    intensity: intensity < 1 ? 1 : intensity > 3 ? 3 : intensity,
-    cue: String(source.cue || exercise.cue || ""),
-    at: source.at ? String(source.at) : null,
-    stack: source.stack ? String(source.stack) : null,
-    skipped: Boolean(source.skipped),
-  };
-}
-
 export function sortHistoryDescending(history) {
   return history.slice().sort((left, right) => right.dateKey.localeCompare(left.dateKey));
 }
@@ -180,8 +190,8 @@ export function ensureHistoryEntry(history, dateKey) {
   return entry;
 }
 
-export function filterExercises(filters) {
-  return EXERCISES.filter((exercise) => {
+export function filterExercises(library, filters) {
+  return library.filter((exercise) => {
     const matchesCategory = filters.category === "any" || exercise.category === filters.category;
     const matchesIntensity = filters.intensity === "any" || exercise.intensity === Number(filters.intensity);
     return matchesCategory && matchesIntensity;
@@ -278,15 +288,6 @@ export function formatMetaText(snacks) {
   }
 
   return `${snacks.length} snack${snacks.length === 1 ? "" : "s"} / load ${getLoad(snacks)}`;
-}
-
-export function formatDurationSummary(size) {
-  const work = size * SNACK_DURATION;
-  const rest = Math.max(0, (size - 1) * REST_DURATION);
-  const total = work + rest;
-  const minutes = Math.floor(total / 60);
-  const seconds = String(total % 60).padStart(2, "0");
-  return `total ${minutes}m ${seconds}s / ${work}s work / ${rest}s rest`;
 }
 
 export function formatRunDuration(size) {

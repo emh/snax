@@ -1,10 +1,11 @@
-import { createSeedHistory, hydrateSnack, sortHistoryDescending } from "./model.js";
+import { createDefaultLibrary, createSeedHistory, hydrateLibrary, hydrateSnack, sortHistoryDescending } from "./model.js";
 
-const STORAGE_KEY = "snax.app-state.v1";
+const STORAGE_KEY = "snax.app-state.v2";
 
 function fallbackState() {
   return {
     history: createSeedHistory(),
+    library: createDefaultLibrary(),
   };
 }
 
@@ -38,6 +39,7 @@ export function loadAppState() {
     const parsed = JSON.parse(raw);
     return {
       history: normalizeHistory(parsed.history),
+      library: hydrateLibrary(parsed.library),
     };
   } catch {
     return fallbackState();
@@ -53,7 +55,7 @@ export function saveAppState(appState) {
     STORAGE_KEY,
     JSON.stringify({
       history: appState.history,
+      library: appState.library,
     }),
   );
 }
-

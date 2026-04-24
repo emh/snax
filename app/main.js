@@ -1,7 +1,9 @@
 import {
+  CATEGORY_ORDER,
   DEFAULT_FILTERS,
   REST_DURATION,
   SNACK_DURATION,
+  createEmptyExercise,
   describeFilters,
   ensureHistoryEntry,
   filterExercises,
@@ -27,6 +29,10 @@ import { loadAppState, saveAppState } from "./storage.js";
 const loadedState = loadAppState();
 const state = {
   filters: { ...DEFAULT_FILTERS },
+  settingsFilters: {
+    category: "any",
+    intensity: "any",
+  },
   stack: [],
   runIdx: 0,
   secondsLeft: SNACK_DURATION,
@@ -36,9 +42,12 @@ const state = {
   completed: [],
   currentStackId: "",
   history: loadedState.history,
+  library: loadedState.library,
+  editingIndex: null,
 };
 
 const $ = (id) => document.getElementById(id);
+const CATEGORY_COLOR_CLASSES = CATEGORY_ORDER.map((category) => `cat-${category}`);
 
 let toastTimer;
 
@@ -49,7 +58,7 @@ function esc(value) {
 }
 
 function save() {
-  saveAppState({ history: state.history });
+  saveAppState({ history: state.history, library: state.library });
 }
 
 function toast(message) {
@@ -115,27 +124,33 @@ function renderToday() {
 }
 
 function renderArchive() {
-  const keys = recentDateKeys(7, false);
-  const entries = keys.map((dateKey) => findHistoryEntry(state.history, dateKey) || { dateKey, snacks: [] });
+  const entries = state.history.filter((entry) => entry.snacks.length > 0).slice(0, 7);
+  const archiveSection = $("archive-section");
+
+  archiveSection.hidden = entries.length === 0;
+  if (entries.length === 0) {
+    $("archive-list").innerHTML = "";
+    $("archive-stats").textContent = "";
+    return;
+  }
+
   const stats = summarizeEntries(entries);
 
-  $("archive-stats").textContent = `7d / ${stats.count} snacks / load ${stats.load}`;
+  $("archive-stats").textContent = `${stats.count} snacks / load ${stats.load}`;
   $("archive-list").innerHTML = entries
-    .map((entry) => {
-      const meta = entry.snacks.length > 0 ? `${entry.snacks.length} / load ${getLoad(entry.snacks)}` : "--";
-      return `
-        <div class="archive-row ${entry.snacks.length > 0 ? "has-snacks" : ""}" data-date="${esc(entry.dateKey)}">
+    .map(
+      (entry) => `
+        <div class="archive-row has-snacks" data-date="${esc(entry.dateKey)}">
           <span class="archive-date">${esc(formatShortDate(entry.dateKey))}</span>
-          <div class="archive-spark">${renderSparkBars(entry.snacks, "archive", "fast")}</div>
-          <span class="archive-meta">${esc(meta)}</span>
+          <div class="archive-spark">${renderSparkBars(entry.snacks, "archive", "")}</div>
         </div>
-      `;
-    })
+      `,
+    )
     .join("");
 }
 
 function shakeJar() {
-  const pool = filterExercises(state.filters);
+  const pool = filterExercises(state.library, state.filters);
   if (pool.length === 0) {
     toast("no snacks match those filters");
     return;
@@ -160,13 +175,88 @@ function renderPreview() {
               <p class="name">${esc(exercise.name)}</p>
             </div>
             <div class="meta">
-              <span class="cue">${esc(exercise.cue)}</span>
+              <span class="cue">${esc(exercise.tagline)}</span>
             </div>
           </div>
         </article>
       `,
     )
     .join("");
+}
+
+function renderSettingsFilterChips() {
+  document.querySelectorAll(".settings-chip").forEach((chip) => {
+    const group = chip.dataset.settingsGroup;
+    const rawValue = chip.dataset.val;
+    if (!group || !rawValue) {
+      return;
+    }
+
+    const isActive = state.settingsFilters[group] === rawValue;
+    chip.classList.toggle("active", isActive);
+    chip.classList.remove(...CATEGORY_COLOR_CLASSES);
+
+    if (isActive && group === "category" && rawValue !== "any") {
+      chip.classList.add(`cat-${rawValue}`);
+    }
+  });
+}
+
+function renderSettings() {
+  renderSettingsFilterChips();
+
+  const visibleSnacks = state.library
+    .map((exercise, index) => ({ exercise, index }))
+    .filter(({ exercise }) => {
+      const matchesCategory =
+        state.settingsFilters.category === "any" || exercise.category === state.settingsFilters.category;
+      const matchesIntensity =
+        state.settingsFilters.intensity === "any" || exercise.intensity === Number(state.settingsFilters.intensity);
+      return matchesCategory && matchesIntensity;
+    });
+
+  $("settings-list").innerHTML =
+    visibleSnacks.length === 0
+      ? `<p class="settings-empty">no snacks match those filters</p>`
+      : visibleSnacks
+          .map(
+            ({ exercise, index }) => `
+              <button class="settings-card settings-card-button" data-action="edit-snack" data-index="${index}" type="button">
+                <div class="settings-snack-row">
+                  <span class="day-bar cat-${esc(exercise.category)}" data-intensity="${exercise.intensity}"></span>
+                  <div class="settings-card-copy">
+                    <p class="name">${esc(exercise.name || "untitled snack")}</p>
+                    <div class="meta">
+                      <span class="cue">${esc(exercise.tagline || "add a tagline")}</span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            `,
+          )
+          .join("");
+}
+
+function renderSettingsEditor() {
+  const overlay = $("settings-overlay");
+  const exercise = state.editingIndex == null ? null : state.library[state.editingIndex];
+
+  overlay.hidden = !exercise;
+  document.body.classList.toggle("settings-overlay-open", Boolean(exercise));
+
+  if (!exercise) {
+    return;
+  }
+
+  $("settings-name-input").value = exercise.name;
+  $("settings-tagline-input").value = exercise.tagline;
+  $("settings-category-select").value = exercise.category;
+  $("settings-intensity-select").value = String(exercise.intensity);
+  $("settings-dialog-name").textContent = exercise.name || "untitled snack";
+  $("settings-dialog-tagline").textContent = exercise.tagline || "add a tagline";
+  $("settings-edit-bar").className = `day-bar cat-${exercise.category}`;
+  $("settings-edit-bar").dataset.intensity = String(exercise.intensity);
+  $("settings-remove-btn").disabled = state.library.length === 1;
 }
 
 function beginRun() {
@@ -371,7 +461,15 @@ function showDay(dateKey) {
   showView("day");
 }
 
+function openSettings() {
+  renderSettings();
+  renderSettingsEditor();
+  showView("settings");
+}
+
 function goHome() {
+  state.editingIndex = null;
+  renderSettingsEditor();
   renderHome();
   showView("home");
 }
@@ -404,7 +502,7 @@ function attachChipHandlers() {
       state.filters[group] = group === "size" ? Number(rawValue) : rawValue;
 
       document.querySelectorAll(`.chip[data-group="${group}"]`).forEach((other) => {
-        other.classList.remove("active", "cat-cardio", "cat-strength", "cat-core", "cat-mobility", "cat-breath");
+        other.classList.remove("active", ...CATEGORY_COLOR_CLASSES);
       });
 
       chip.classList.add("active");
@@ -415,17 +513,129 @@ function attachChipHandlers() {
   });
 }
 
+function attachSizeHandlers() {
+  document.querySelectorAll(".size-bubble").forEach((button) => {
+    button.addEventListener("click", () => {
+      const size = Number(button.dataset.size);
+      if (!size) {
+        return;
+      }
+
+      state.filters.size = size;
+      shakeJar();
+    });
+  });
+}
+
+function updateSettingsFilter(group, rawValue) {
+  if (!group || !rawValue) {
+    return;
+  }
+
+  state.settingsFilters[group] = rawValue;
+  renderSettings();
+}
+
+function openSnackEditor(index) {
+  if (!Number.isInteger(index) || !state.library[index]) {
+    return;
+  }
+
+  state.editingIndex = index;
+  renderSettingsEditor();
+  window.requestAnimationFrame(() => {
+    $("settings-name-input").focus();
+  });
+}
+
+function closeSnackEditor() {
+  state.editingIndex = null;
+  renderSettings();
+  renderSettingsEditor();
+}
+
+function updateLibraryField(index, field, value) {
+  const exercise = state.library[index];
+  if (!exercise) {
+    return;
+  }
+
+  if (field === "intensity") {
+    exercise[field] = Number(value);
+  } else {
+    exercise[field] = value;
+  }
+
+  save();
+  if (state.editingIndex === index) {
+    renderSettingsEditor();
+  }
+}
+
+function addSnack() {
+  const exercise = createEmptyExercise();
+  if (state.settingsFilters.category !== "any") {
+    exercise.category = state.settingsFilters.category;
+  }
+  if (state.settingsFilters.intensity !== "any") {
+    exercise.intensity = Number(state.settingsFilters.intensity);
+  }
+
+  state.library.push(exercise);
+  save();
+  renderSettings();
+  openSnackEditor(state.library.length - 1);
+}
+
+function deleteSnack(index) {
+  if (state.library.length === 1) {
+    toast("keep at least one snack");
+    return;
+  }
+
+  state.library.splice(index, 1);
+  save();
+  if (state.editingIndex === index) {
+    state.editingIndex = null;
+  } else if (state.editingIndex != null && state.editingIndex > index) {
+    state.editingIndex -= 1;
+  }
+  renderSettings();
+  renderSettingsEditor();
+}
+
 function init() {
   attachChipHandlers();
+  attachSizeHandlers();
   renderHome();
 
-  $("shake-btn").addEventListener("click", shakeJar);
+  $("settings-btn").addEventListener("click", openSettings);
   $("begin-btn").addEventListener("click", beginRun);
   $("btn-prev").addEventListener("click", prevSnack);
   $("btn-pause").addEventListener("click", togglePause);
   $("btn-skip").addEventListener("click", skipSnack);
   $("timer-quit").addEventListener("click", quitRun);
   $("btn-return").addEventListener("click", goHome);
+  $("add-snack-btn").addEventListener("click", addSnack);
+  $("settings-close-btn").addEventListener("click", closeSnackEditor);
+  $("settings-overlay-scrim").addEventListener("click", closeSnackEditor);
+  $("settings-remove-btn").addEventListener("click", () => {
+    if (state.editingIndex != null) {
+      deleteSnack(state.editingIndex);
+    }
+  });
+  $("settings-name-input").addEventListener("input", (event) => {
+    updateLibraryField(state.editingIndex, "name", event.target.value);
+  });
+  $("settings-tagline-input").addEventListener("input", (event) => {
+    updateLibraryField(state.editingIndex, "tagline", event.target.value);
+  });
+  $("settings-category-select").addEventListener("change", (event) => {
+    updateLibraryField(state.editingIndex, "category", event.target.value);
+  });
+  $("settings-intensity-select").addEventListener("change", (event) => {
+    updateLibraryField(state.editingIndex, "intensity", event.target.value);
+  });
 
   document.querySelectorAll('[data-action="home"]').forEach((button) => {
     button.addEventListener("click", goHome);
@@ -434,7 +644,7 @@ function init() {
   $("more-toggle").addEventListener("click", () => {
     const advanced = $("advanced");
     const isOpen = advanced.classList.toggle("open");
-    $("more-toggle").textContent = isOpen ? "less..." : "more...";
+    $("more-toggle").setAttribute("aria-expanded", String(isOpen));
   });
 
   $("today-panel").addEventListener("click", () => {
@@ -452,7 +662,33 @@ function init() {
     }
   });
 
+  document.querySelector(".settings-filters").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const chip = target ? target.closest(".settings-chip") : null;
+    if (!chip) {
+      return;
+    }
+
+    updateSettingsFilter(chip.dataset.settingsGroup, chip.dataset.val);
+  });
+
+  $("settings-list").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target ? target.closest('[data-action="edit-snack"]') : null;
+    if (!button) {
+      return;
+    }
+
+    openSnackEditor(Number(button.dataset.index));
+  });
+
   document.addEventListener("keydown", (event) => {
+    if (state.editingIndex != null && event.key === "Escape") {
+      event.preventDefault();
+      closeSnackEditor();
+      return;
+    }
+
     if ($("view-home").classList.contains("active") && event.key === " ") {
       event.preventDefault();
       shakeJar();
