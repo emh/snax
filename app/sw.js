@@ -1,8 +1,9 @@
-const CACHE_NAME = "snax-shell-v1";
+const CACHE_NAME = "snax-shell-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
+  "./config.js",
   "./main.js",
   "./model.js",
   "./storage.js",
