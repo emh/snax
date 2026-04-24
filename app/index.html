@@ -38,9 +38,35 @@
 
         <section class="link-panel" id="link-panel" hidden>
           <p class="link-helper" id="link-helper">open this on another device to sync</p>
+          <p class="link-label">link code</p>
+          <div class="link-code-box" id="link-code-box">not ready yet</div>
+          <p class="link-label">share URL</p>
           <div class="link-url-box" id="link-url-box">not ready yet</div>
-          <div class="link-actions">
+          <div class="link-copy-row">
             <button class="btn-muted" id="copy-link-btn" type="button" hidden>copy</button>
+          </div>
+          <form class="link-join" id="link-join-form">
+            <label class="settings-field link-field">
+              <span class="settings-label">enter code from another device</span>
+              <p class="link-warning">
+                connecting will overwrite this device's local snacks, history, and library with data from that other
+                device/account.
+              </p>
+              <input
+                class="settings-input link-code-input"
+                id="link-code-input"
+                type="text"
+                inputmode="text"
+                autocapitalize="characters"
+                autocomplete="off"
+                autocorrect="off"
+                spellcheck="false"
+                placeholder="ABCD1234 or pasted link"
+              />
+            </label>
+            <button class="btn-muted" id="link-connect-btn" type="submit">connect</button>
+          </form>
+          <div class="link-actions">
             <button class="btn-muted" id="close-link-btn" type="button">ok</button>
           </div>
         </section>

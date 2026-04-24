@@ -50,6 +50,7 @@ const state = {
   linkPanelOpen: false,
   linkBusy: false,
   linkError: "",
+  linkCodeInput: "",
   editingIndex: null,
 };
 
@@ -150,6 +151,7 @@ function renderLinkPanel() {
   const panel = $("link-panel");
   const toggle = $("link-btn");
   const linkUrl = state.sync.code ? buildDeviceLink(window.location.href, state.sync.code) : "";
+  const linkCode = state.sync.code || "";
 
   panel.hidden = !state.linkPanelOpen;
   toggle?.setAttribute("aria-expanded", String(state.linkPanelOpen));
@@ -159,7 +161,11 @@ function renderLinkPanel() {
   }
 
   $("link-helper").textContent = linkHelperText(linkUrl);
+  $("link-code-box").textContent = state.linkBusy && !linkCode ? "preparing..." : linkCode || "not ready yet";
   $("link-url-box").textContent = state.linkBusy ? "preparing link..." : linkUrl || "not ready yet";
+  $("link-code-input").value = state.linkCodeInput;
+  $("link-code-input").disabled = state.linkBusy;
+  $("link-connect-btn").disabled = state.linkBusy || !extractLinkCode(state.linkCodeInput);
   $("copy-link-btn").hidden = !linkUrl;
   $("copy-link-btn").disabled = state.linkBusy || !linkUrl;
 }
@@ -178,10 +184,10 @@ function linkHelperText(linkUrl) {
   }
 
   if (linkUrl) {
-    return "copy this URL and open it on another device";
+    return "copy this URL or type this code on another device";
   }
 
-  return "open a link on another device to sync";
+  return "enter a code from another device below to sync";
 }
 
 function closeLinkPanel() {
@@ -695,8 +701,21 @@ async function handleIncomingLink() {
     return;
   }
 
+  await connectToLinkCode(code, { sourceUrl: url });
+}
+
+async function connectToLinkCode(value, options = {}) {
+  const code = extractLinkCode(value);
+
   if (!state.settings.syncBaseUrl) {
     state.linkError = "linking is not available here yet";
+    state.linkPanelOpen = true;
+    renderLinkPanel();
+    return;
+  }
+
+  if (!code) {
+    state.linkError = "enter a link code";
     state.linkPanelOpen = true;
     renderLinkPanel();
     return;
@@ -705,6 +724,7 @@ async function handleIncomingLink() {
   state.linkBusy = true;
   state.linkError = "";
   state.linkPanelOpen = true;
+  state.linkCodeInput = code;
   renderLinkPanel();
 
   try {
@@ -712,9 +732,12 @@ async function handleIncomingLink() {
     state.sync.code = normalizeCode(payload.code || code);
     applyRemoteSnapshot(payload.snapshot, payload.version || "");
     state.syncStatus = "synced";
+    state.linkCodeInput = "";
     persistRemoteState();
     startSync();
-    stripIncomingLinkParam(url);
+    if (options.sourceUrl) {
+      stripIncomingLinkParam(options.sourceUrl);
+    }
     toast("device linked");
   } catch (error) {
     state.linkError = error instanceof Error ? error.message : "Device could not be linked.";
@@ -727,6 +750,27 @@ async function handleIncomingLink() {
 function stripIncomingLinkParam(url) {
   url.searchParams.delete("link");
   window.history.replaceState({}, "", url.toString());
+}
+
+function extractLinkCode(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  if (/[?&]link=/i.test(raw) || /^[a-z]+:\/\//i.test(raw)) {
+    try {
+      const url = new URL(raw, window.location.href);
+      const code = normalizeCode(url.searchParams.get("link"));
+      if (code) {
+        return code;
+      }
+    } catch {
+      // Fall through and treat the input as a raw code.
+    }
+  }
+
+  return normalizeCode(raw);
 }
 
 async function copyText(value) {
@@ -893,6 +937,24 @@ async function init() {
   $("copy-link-btn").addEventListener("click", () => {
     copyLinkUrl().catch((error) => {
       state.linkError = error instanceof Error ? error.message : "Link could not be copied.";
+      renderLinkPanel();
+    });
+  });
+  $("link-code-input").addEventListener("input", (event) => {
+    state.linkCodeInput = event.target.value;
+    if (state.linkError) {
+      state.linkError = "";
+      renderLinkPanel();
+      return;
+    }
+
+    $("link-connect-btn").disabled = state.linkBusy || !extractLinkCode(state.linkCodeInput);
+  });
+  $("link-join-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    connectToLinkCode(state.linkCodeInput).catch((error) => {
+      state.linkError = error instanceof Error ? error.message : "Device could not be linked.";
+      state.linkBusy = false;
       renderLinkPanel();
     });
   });

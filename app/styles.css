@@ -177,16 +177,74 @@ button {
   font-style: italic;
 }
 
+.link-label {
+  margin: 16px 0 0;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.link-code-box,
 .link-url-box {
-  margin-top: 14px;
+  margin-top: 8px;
   padding: 14px 16px;
   border: 1px solid var(--rule);
   background: rgba(255, 255, 255, 0.6);
+}
+
+.link-code-box {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: clamp(18px, 5vw, 24px);
+  letter-spacing: 0.24em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.link-url-box {
   color: var(--ink-mid);
   font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.5;
   word-break: break-all;
+}
+
+.link-copy-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.link-join {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+}
+
+.link-field {
+  margin: 0;
+}
+
+.link-code-input {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.link-warning {
+  margin: -2px 0 0;
+  color: var(--ink-mid);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.link-join .btn-muted {
+  justify-self: end;
 }
 
 .link-actions {
