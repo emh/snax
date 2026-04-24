@@ -12,7 +12,6 @@ import {
   formatLongDate,
   formatMetaText,
   formatMonthDay,
-  formatRunDuration,
   formatShortDate,
   formatSizeLabel,
   formatTime,
@@ -20,14 +19,15 @@ import {
   getLoad,
   groupByStack,
   pickStack,
-  recentDateKeys,
   summarizeEntries,
   todayKey,
 } from "./model.js";
-import { loadAppState, saveAppState } from "./storage.js";
+import { hydrateSnapshot, loadAppState, loadSettings, saveAppState } from "./storage.js";
+import { SnaxSync, buildDeviceLink, createLinkRoom, fetchLinkState, nextClock, normalizeCode, observeClock } from "./sync.js";
 
 const loadedState = loadAppState();
 const state = {
+  settings: loadSettings(),
   filters: { ...DEFAULT_FILTERS },
   settingsFilters: {
     category: "any",
@@ -43,6 +43,13 @@ const state = {
   currentStackId: "",
   history: loadedState.history,
   library: loadedState.library,
+  deviceId: loadedState.deviceId,
+  clock: loadedState.clock,
+  sync: loadedState.sync,
+  syncStatus: loadedState.sync.code ? "synced" : "local",
+  linkPanelOpen: false,
+  linkBusy: false,
+  linkError: "",
   editingIndex: null,
 };
 
@@ -50,6 +57,7 @@ const $ = (id) => document.getElementById(id);
 const CATEGORY_COLOR_CLASSES = CATEGORY_ORDER.map((category) => `cat-${category}`);
 
 let toastTimer;
+let syncClient = null;
 
 function esc(value) {
   const div = document.createElement("div");
@@ -57,8 +65,35 @@ function esc(value) {
   return div.innerHTML;
 }
 
-function save() {
-  saveAppState({ history: state.history, library: state.library });
+function save(markChange = true) {
+  if (markChange) {
+    const next = nextClock(state.clock, state.deviceId);
+    state.clock = next.clock;
+    state.sync.stateVersion = next.version;
+  }
+
+  saveAppState({
+    history: state.history,
+    library: state.library,
+    deviceId: state.deviceId,
+    clock: state.clock,
+    sync: state.sync,
+  });
+
+  renderLinkPanel();
+  syncClient?.flush();
+}
+
+function persistRemoteState() {
+  saveAppState({
+    history: state.history,
+    library: state.library,
+    deviceId: state.deviceId,
+    clock: state.clock,
+    sync: state.sync,
+  });
+
+  renderLinkPanel();
 }
 
 function toast(message) {
@@ -106,8 +141,52 @@ function renderIntensityPips(intensity, category) {
 
 function renderHome() {
   renderDate();
+  renderLinkPanel();
   renderToday();
   renderArchive();
+}
+
+function renderLinkPanel() {
+  const panel = $("link-panel");
+  const toggle = $("link-btn");
+  const linkUrl = state.sync.code ? buildDeviceLink(window.location.href, state.sync.code) : "";
+
+  panel.hidden = !state.linkPanelOpen;
+  toggle?.setAttribute("aria-expanded", String(state.linkPanelOpen));
+
+  if (!state.linkPanelOpen) {
+    return;
+  }
+
+  $("link-helper").textContent = linkHelperText(linkUrl);
+  $("link-url-box").textContent = state.linkBusy ? "preparing link..." : linkUrl || "not ready yet";
+  $("copy-link-btn").hidden = !linkUrl;
+  $("copy-link-btn").disabled = state.linkBusy || !linkUrl;
+}
+
+function linkHelperText(linkUrl) {
+  if (state.linkError) {
+    return state.linkError;
+  }
+
+  if (!state.settings.syncBaseUrl) {
+    return "linking is not available here yet";
+  }
+
+  if (state.linkBusy) {
+    return "preparing a link for another device";
+  }
+
+  if (linkUrl) {
+    return "copy this URL and open it on another device";
+  }
+
+  return "open a link on another device to sync";
+}
+
+function closeLinkPanel() {
+  state.linkPanelOpen = false;
+  renderLinkPanel();
 }
 
 function renderDate() {
@@ -147,6 +226,80 @@ function renderArchive() {
       `,
     )
     .join("");
+}
+
+function currentSnapshot() {
+  return {
+    history: state.history,
+    library: state.library,
+  };
+}
+
+function ensureLocalVersion() {
+  if (state.sync.stateVersion) {
+    return;
+  }
+
+  const next = nextClock(state.clock, state.deviceId);
+  state.clock = next.clock;
+  state.sync.stateVersion = next.version;
+}
+
+function refreshVisibleViews() {
+  renderLinkPanel();
+  renderHome();
+
+  if ($("view-settings").classList.contains("active")) {
+    renderSettings();
+    renderSettingsEditor();
+  }
+
+  if ($("view-day").classList.contains("active")) {
+    goHome();
+  }
+}
+
+function applyRemoteSnapshot(snapshot, version) {
+  const hydrated = hydrateSnapshot(snapshot);
+  state.history = hydrated.history;
+  state.library = hydrated.library;
+  state.editingIndex = null;
+  state.clock = observeClock(state.clock, version);
+  state.sync.stateVersion = version || state.sync.stateVersion;
+  persistRemoteState();
+  refreshVisibleViews();
+}
+
+function ensureSyncClient() {
+  if (syncClient) {
+    return syncClient;
+  }
+
+  syncClient = new SnaxSync({
+    settings: state.settings,
+    deviceId: state.deviceId,
+    code: state.sync.code,
+    getVersion: () => state.sync.stateVersion,
+    getSnapshot: currentSnapshot,
+    applyRemote: (snapshot, version) => {
+      applyRemoteSnapshot(snapshot, version);
+    },
+    onStatus: (status) => {
+      state.syncStatus = status;
+      renderLinkPanel();
+    },
+    onError: (message) => {
+      state.linkError = message;
+      renderLinkPanel();
+    },
+  });
+
+  return syncClient;
+}
+
+function startSync() {
+  ensureLocalVersion();
+  ensureSyncClient().start(state.sync.code);
 }
 
 function shakeJar() {
@@ -383,7 +536,7 @@ function renderDone() {
       `,
     )
     .join("");
-  $("done-stats").textContent = `load ${getLoad(state.completed)} / ${formatRunDuration(state.completed.length)}`;
+  $("done-stats").textContent = `load ${getLoad(state.completed)}`;
 }
 
 function togglePause() {
@@ -472,6 +625,125 @@ function goHome() {
   renderSettingsEditor();
   renderHome();
   showView("home");
+}
+
+async function toggleLinkPanel() {
+  state.linkPanelOpen = !state.linkPanelOpen;
+  renderLinkPanel();
+
+  if (!state.linkPanelOpen || state.sync.code || state.linkBusy) {
+    return;
+  }
+
+  await prepareLink();
+}
+
+async function prepareLink() {
+  if (!state.settings.syncBaseUrl) {
+    state.linkError = "linking is not available here yet";
+    renderLinkPanel();
+    return;
+  }
+
+  state.linkBusy = true;
+  state.linkError = "";
+  renderLinkPanel();
+
+  try {
+    ensureLocalVersion();
+    const payload = await createLinkRoom(state.settings.syncBaseUrl, {
+      deviceId: state.deviceId,
+      version: state.sync.stateVersion,
+      snapshot: currentSnapshot(),
+    });
+
+    state.sync.code = normalizeCode(payload.code);
+    state.sync.stateVersion = payload.version || state.sync.stateVersion;
+    state.clock = observeClock(state.clock, payload.version);
+    state.syncStatus = "synced";
+    persistRemoteState();
+    startSync();
+  } catch (error) {
+    state.linkError = error instanceof Error ? error.message : "Link could not be prepared.";
+  } finally {
+    state.linkBusy = false;
+    renderLinkPanel();
+  }
+}
+
+async function copyLinkUrl() {
+  const linkUrl = state.sync.code ? buildDeviceLink(window.location.href, state.sync.code) : "";
+  if (!linkUrl) {
+    if (!state.linkBusy) {
+      await prepareLink();
+    }
+    return;
+  }
+
+  await copyText(linkUrl);
+  toast("link copied");
+}
+
+async function handleIncomingLink() {
+  const url = new URL(window.location.href);
+  const code = normalizeCode(url.searchParams.get("link"));
+
+  if (!code) {
+    if (state.sync.code) {
+      startSync();
+    }
+    return;
+  }
+
+  if (!state.settings.syncBaseUrl) {
+    state.linkError = "linking is not available here yet";
+    state.linkPanelOpen = true;
+    renderLinkPanel();
+    return;
+  }
+
+  state.linkBusy = true;
+  state.linkError = "";
+  state.linkPanelOpen = true;
+  renderLinkPanel();
+
+  try {
+    const payload = await fetchLinkState(state.settings.syncBaseUrl, code);
+    state.sync.code = normalizeCode(payload.code || code);
+    applyRemoteSnapshot(payload.snapshot, payload.version || "");
+    state.syncStatus = "synced";
+    persistRemoteState();
+    startSync();
+    stripIncomingLinkParam(url);
+    toast("device linked");
+  } catch (error) {
+    state.linkError = error instanceof Error ? error.message : "Device could not be linked.";
+  } finally {
+    state.linkBusy = false;
+    renderLinkPanel();
+  }
+}
+
+function stripIncomingLinkParam(url) {
+  url.searchParams.delete("link");
+  window.history.replaceState({}, "", url.toString());
+}
+
+async function copyText(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+    return;
+  } catch {
+    const input = document.createElement("textarea");
+    input.value = value;
+    input.setAttribute("readonly", "true");
+    input.style.position = "absolute";
+    input.style.left = "-9999px";
+    document.body.append(input);
+    input.select();
+    document.execCommand("copy");
+    input.remove();
+  }
 }
 
 function formatStackLabel(size) {
@@ -604,18 +876,31 @@ function deleteSnack(index) {
   renderSettingsEditor();
 }
 
-function init() {
+async function init() {
   attachChipHandlers();
   attachSizeHandlers();
   renderHome();
 
+  $("link-btn").addEventListener("click", () => {
+    toggleLinkPanel().catch((error) => {
+      state.linkError = error instanceof Error ? error.message : "Link could not be prepared.";
+      state.linkBusy = false;
+      renderLinkPanel();
+    });
+  });
+  $("close-link-btn").addEventListener("click", closeLinkPanel);
   $("settings-btn").addEventListener("click", openSettings);
+  $("copy-link-btn").addEventListener("click", () => {
+    copyLinkUrl().catch((error) => {
+      state.linkError = error instanceof Error ? error.message : "Link could not be copied.";
+      renderLinkPanel();
+    });
+  });
   $("begin-btn").addEventListener("click", beginRun);
   $("btn-prev").addEventListener("click", prevSnack);
   $("btn-pause").addEventListener("click", togglePause);
   $("btn-skip").addEventListener("click", skipSnack);
   $("timer-quit").addEventListener("click", quitRun);
-  $("btn-return").addEventListener("click", goHome);
   $("add-snack-btn").addEventListener("click", addSnack);
   $("settings-close-btn").addEventListener("click", closeSnackEditor);
   $("settings-overlay-scrim").addEventListener("click", closeSnackEditor);
@@ -716,6 +1001,8 @@ function init() {
       }
     }
   });
+
+  await handleIncomingLink();
 }
 
 init();

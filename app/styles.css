@@ -109,6 +109,7 @@ button {
 .home-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 18px;
   margin-bottom: 8px;
 }
 
@@ -151,12 +152,48 @@ button {
   font-size: 11px;
 }
 
+.link-panel,
 .today-panel,
 .archive-row,
 .preview-list,
 .done-summary,
 .day-hero {
   border-top: 1px solid var(--rule);
+}
+
+.link-panel {
+  margin-top: 24px;
+  padding: 18px 0 20px;
+}
+
+.link-helper,
+.link-url-box {
+  margin: 0;
+}
+
+.link-helper {
+  color: var(--ink-light);
+  font-size: 17px;
+  font-style: italic;
+}
+
+.link-url-box {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink-mid);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.link-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 12px;
 }
 
 .today-panel {
@@ -416,14 +453,12 @@ button {
   margin-top: 12px;
 }
 
-.btn-begin,
-.btn-return {
+.btn-begin {
   color: var(--red);
   font-style: italic;
 }
 
-.btn-begin:hover,
-.btn-return:hover {
+.btn-begin:hover {
   color: var(--red-light);
 }
 
@@ -950,8 +985,12 @@ body.settings-overlay-open {
 }
 
 .done-wrap {
-  padding-top: 88px;
+  padding-top: 26px;
   text-align: center;
+}
+
+.done-topbar {
+  padding-bottom: 0;
 }
 
 .done-label {
@@ -991,14 +1030,6 @@ body.settings-overlay-open {
 .done-list-item .meta {
   margin-top: 0;
   flex-shrink: 0;
-}
-
-.done-actions {
-  margin-top: 34px;
-}
-
-.btn-return {
-  font-size: 24px;
 }
 
 .day-hero {

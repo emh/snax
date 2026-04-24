@@ -21,11 +21,21 @@
       <section id="view-home" class="view view-home active">
         <header class="home-header">
           <div class="home-actions">
+            <button class="header-link" id="link-btn" type="button" aria-expanded="false">link</button>
             <button class="header-link" id="settings-btn" type="button">library</button>
           </div>
           <h1>sna<span class="x">x</span></h1>
           <p class="date" id="home-date"></p>
         </header>
+
+        <section class="link-panel" id="link-panel" hidden>
+          <p class="link-helper" id="link-helper">open this on another device to sync</p>
+          <div class="link-url-box" id="link-url-box">not ready yet</div>
+          <div class="link-actions">
+            <button class="btn-muted" id="copy-link-btn" type="button" hidden>copy</button>
+            <button class="btn-muted" id="close-link-btn" type="button">ok</button>
+          </div>
+        </section>
 
         <section class="today-panel" id="today-panel">
           <div class="panel-head">
@@ -131,6 +141,10 @@
       </section>
 
       <section id="view-done" class="view view-done">
+        <div class="preview-header done-topbar">
+          <button class="back-btn" data-action="home" type="button">back</button>
+        </div>
+
         <div class="done-wrap">
           <p class="done-label">well done<span class="done-dot"> .</span></p>
           <h2 class="done-title" id="done-title">three complete</h2>
@@ -139,10 +153,6 @@
             <div class="done-spark" id="done-spark"></div>
             <div class="done-list" id="done-list"></div>
             <p class="done-stats" id="done-stats"></p>
-          </div>
-
-          <div class="done-actions">
-            <button class="btn-return" id="btn-return" type="button">back to the jar -&gt;</button>
           </div>
         </div>
       </section>

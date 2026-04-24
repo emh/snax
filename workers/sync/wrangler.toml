@@ -1,0 +1,11 @@
+name = "snax-sync"
+main = "src/index.js"
+compatibility_date = "2026-04-24"
+
+[[durable_objects.bindings]]
+name = "SNAX_LINK_ROOM"
+class_name = "SnaxLinkRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SnaxLinkRoom"]
