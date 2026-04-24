@@ -77,6 +77,10 @@ function normalizeIntensity(intensity) {
   return value || 1;
 }
 
+function normalizeEnabled(enabled) {
+  return enabled !== false;
+}
+
 function slugify(text, fallback) {
   const value = String(text || "")
     .toLowerCase()
@@ -87,7 +91,7 @@ function slugify(text, fallback) {
 }
 
 export function createDefaultLibrary() {
-  return DEFAULT_LIBRARY.map((exercise) => ({ ...exercise }));
+  return DEFAULT_LIBRARY.map((exercise, index) => hydrateExercise(exercise, index));
 }
 
 export function createEmptyExercise() {
@@ -97,6 +101,7 @@ export function createEmptyExercise() {
     tagline: "add a tagline",
     category: "mobility",
     intensity: 2,
+    enabled: true,
   };
 }
 
@@ -111,6 +116,7 @@ export function hydrateExercise(exercise, index = 0) {
     tagline: String(source.tagline || source.cue || "").trim(),
     category: normalizeCategory(String(source.category || "")),
     intensity: normalizeIntensity(source.intensity),
+    enabled: normalizeEnabled(source.enabled),
   };
 }
 
@@ -192,9 +198,10 @@ export function ensureHistoryEntry(history, dateKey) {
 
 export function filterExercises(library, filters) {
   return library.filter((exercise) => {
+    const isEnabled = exercise.enabled !== false;
     const matchesCategory = filters.category === "any" || exercise.category === filters.category;
     const matchesIntensity = filters.intensity === "any" || exercise.intensity === Number(filters.intensity);
-    return matchesCategory && matchesIntensity;
+    return isEnabled && matchesCategory && matchesIntensity;
   });
 }
 

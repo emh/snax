@@ -209,6 +209,10 @@
         <div class="preview-header">
           <button class="back-btn" data-action="home" type="button">back</button>
           <h2 class="preview-title">library</h2>
+          <div class="settings-actions">
+            <button class="btn-muted" id="add-snack-btn" type="button">add snack</button>
+          </div>
+
         </div>
 
         <div class="settings-filters">
@@ -233,10 +237,19 @@
               <button class="chip settings-chip" data-settings-group="intensity" data-val="3" type="button">hard</button>
             </div>
           </div>
+
+          <label class="settings-field settings-search-field">
+            <span class="settings-label">Filter</span>
+            <input class="settings-input settings-search-input" id="settings-search-input" type="text" />
+          </label>
         </div>
 
-        <div class="settings-actions">
-          <button class="btn-muted" id="add-snack-btn" type="button">add snack</button>
+        <div class="settings-summary">
+          <p class="settings-count" id="settings-count">0 snacks</p>
+          <label class="settings-visible-toggle">
+            <span>enable</span>
+            <input id="settings-visible-toggle" type="checkbox" />
+          </label>
         </div>
 
         <div class="settings-list" id="settings-list"></div>

@@ -678,27 +678,84 @@ button {
   margin-top: 18px;
 }
 
+.settings-search-field {
+  margin-top: 18px;
+}
+
+.settings-search-input {
+  font-family: var(--font-serif);
+  font-size: 20px;
+}
+
+.settings-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.settings-count {
+  margin: 0;
+  font-size: 24px;
+  font-style: italic;
+}
+
+.settings-visible-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.settings-visible-toggle input,
+.settings-enabled-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--strength);
+}
+
 .settings-list {
   display: grid;
   margin-top: 24px;
 }
 
 .settings-card {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
   padding: 22px 0;
   border-top: 1px solid var(--rule);
 }
 
+.settings-card:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
 .settings-card-button {
+  flex: 1 1 auto;
+  min-width: 0;
   width: 100%;
   text-align: left;
 }
 
-.settings-card-button:last-child {
-  border-bottom: 1px solid var(--rule);
-}
-
 .settings-card-button:hover .name {
   color: var(--red);
+}
+
+.settings-card.is-disabled .settings-card-button {
+  opacity: 0.46;
+}
+
+.settings-card.is-disabled .settings-card-button:hover .name {
+  color: var(--ink);
 }
 
 .settings-snack-row {
@@ -708,7 +765,15 @@ button {
 }
 
 .settings-card-copy {
+  flex: 1 1 auto;
   min-width: 0;
+}
+
+.settings-enabled-toggle {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
 }
 
 .settings-empty {

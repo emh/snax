@@ -32,6 +32,7 @@ const state = {
   settingsFilters: {
     category: "any",
     intensity: "any",
+    query: "",
   },
   stack: [],
   runIdx: 0,
@@ -363,16 +364,19 @@ function renderSettingsFilterChips() {
 
 function renderSettings() {
   renderSettingsFilterChips();
+  const visibleSnacks = getVisibleLibrarySnacks();
+  const visibleEnabledCount = visibleSnacks.filter(({ exercise }) => exercise.enabled !== false).length;
+  const hasActiveFilters =
+    state.settingsFilters.category !== "any" ||
+    state.settingsFilters.intensity !== "any" ||
+    state.settingsFilters.query.trim().length > 0;
 
-  const visibleSnacks = state.library
-    .map((exercise, index) => ({ exercise, index }))
-    .filter(({ exercise }) => {
-      const matchesCategory =
-        state.settingsFilters.category === "any" || exercise.category === state.settingsFilters.category;
-      const matchesIntensity =
-        state.settingsFilters.intensity === "any" || exercise.intensity === Number(state.settingsFilters.intensity);
-      return matchesCategory && matchesIntensity;
-    });
+  $("settings-search-input").value = state.settingsFilters.query;
+  $("settings-count").textContent = formatSettingsCount(visibleSnacks.length, state.library.length, hasActiveFilters);
+  $("settings-visible-toggle").checked = visibleSnacks.length > 0 && visibleEnabledCount === visibleSnacks.length;
+  $("settings-visible-toggle").indeterminate =
+    visibleEnabledCount > 0 && visibleEnabledCount < visibleSnacks.length;
+  $("settings-visible-toggle").disabled = visibleSnacks.length === 0;
 
   $("settings-list").innerHTML =
     visibleSnacks.length === 0
@@ -380,20 +384,52 @@ function renderSettings() {
       : visibleSnacks
           .map(
             ({ exercise, index }) => `
-              <button class="settings-card settings-card-button" data-action="edit-snack" data-index="${index}" type="button">
-                <div class="settings-snack-row">
-                  <span class="day-bar cat-${esc(exercise.category)}" data-intensity="${exercise.intensity}"></span>
-                  <div class="settings-card-copy">
-                    <p class="name">${esc(exercise.name || "untitled snack")}</p>
-                    <div class="meta">
-                      <span class="cue">${esc(exercise.tagline || "add a tagline")}</span>
+              <article class="settings-card ${exercise.enabled === false ? "is-disabled" : ""}">
+                <button class="settings-card-button" data-action="edit-snack" data-index="${index}" type="button">
+                  <div class="settings-snack-row">
+                    <span class="day-bar cat-${esc(exercise.category)}" data-intensity="${exercise.intensity}"></span>
+                    <div class="settings-card-copy">
+                      <p class="name">${esc(exercise.name || "untitled snack")}</p>
+                      <div class="meta">
+                        <span class="cue">${esc(exercise.tagline || "add a tagline")}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
+                </button>
+                <label class="settings-enabled-toggle">
+                  <input
+                    data-action="toggle-snack-enabled"
+                    data-index="${index}"
+                    type="checkbox"
+                    ${exercise.enabled === false ? "" : "checked"}
+                  />
+                </label>
+              </article>
             `,
           )
           .join("");
+}
+
+function getVisibleLibrarySnacks() {
+  const query = state.settingsFilters.query.trim().toLowerCase();
+
+  return state.library.map((exercise, index) => ({ exercise, index })).filter(({ exercise }) => {
+    const matchesCategory =
+      state.settingsFilters.category === "any" || exercise.category === state.settingsFilters.category;
+    const matchesIntensity =
+      state.settingsFilters.intensity === "any" || exercise.intensity === Number(state.settingsFilters.intensity);
+    const matchesQuery = !query || exercise.name.toLowerCase().includes(query);
+    return matchesCategory && matchesIntensity && matchesQuery;
+  });
+}
+
+function formatSettingsCount(visibleCount, totalCount, isFiltered) {
+  const snackWord = totalCount === 1 ? "snack" : "snacks";
+  if (!isFiltered) {
+    return `${totalCount} ${snackWord}`;
+  }
+
+  return `${visibleCount} of ${totalCount} ${snackWord}`;
 }
 
 function renderSettingsEditor() {
@@ -878,12 +914,32 @@ function updateLibraryField(index, field, value) {
 
   if (field === "intensity") {
     exercise[field] = Number(value);
+  } else if (field === "enabled") {
+    exercise[field] = Boolean(value);
   } else {
     exercise[field] = value;
   }
 
   save();
+  renderSettings();
   if (state.editingIndex === index) {
+    renderSettingsEditor();
+  }
+}
+
+function setVisibleSnacksEnabled(enabled) {
+  const visibleSnacks = getVisibleLibrarySnacks();
+  if (visibleSnacks.length === 0) {
+    return;
+  }
+
+  visibleSnacks.forEach(({ exercise }) => {
+    exercise.enabled = enabled;
+  });
+
+  save();
+  renderSettings();
+  if (state.editingIndex != null) {
     renderSettingsEditor();
   }
 }
@@ -983,6 +1039,13 @@ async function init() {
   $("settings-intensity-select").addEventListener("change", (event) => {
     updateLibraryField(state.editingIndex, "intensity", event.target.value);
   });
+  $("settings-search-input").addEventListener("input", (event) => {
+    state.settingsFilters.query = event.target.value;
+    renderSettings();
+  });
+  $("settings-visible-toggle").addEventListener("change", (event) => {
+    setVisibleSnacksEnabled(event.target.checked);
+  });
 
   document.querySelectorAll('[data-action="home"]').forEach((button) => {
     button.addEventListener("click", goHome);
@@ -1027,6 +1090,15 @@ async function init() {
     }
 
     openSnackEditor(Number(button.dataset.index));
+  });
+  $("settings-list").addEventListener("change", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const checkbox = target ? target.closest('[data-action="toggle-snack-enabled"]') : null;
+    if (!(checkbox instanceof HTMLInputElement)) {
+      return;
+    }
+
+    updateLibraryField(Number(checkbox.dataset.index), "enabled", checkbox.checked);
   });
 
   document.addEventListener("keydown", (event) => {
