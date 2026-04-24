@@ -1006,3 +1006,16 @@ async function init() {
 }
 
 init();
+registerServiceWorker();
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {
+      // The app can still run normally without offline install support.
+    });
+  });
+}
