@@ -17,6 +17,8 @@
   --font-serif: "Crimson Pro", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --font-mono: "SF Mono", "Menlo", "Consolas", monospace;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 *,
@@ -102,7 +104,7 @@ button {
 }
 
 .home-header {
-  padding-top: 58px;
+  padding-top: calc(58px + var(--safe-top));
   animation: fade-slide-in 520ms var(--ease) both;
 }
 
@@ -552,7 +554,7 @@ button {
 }
 
 .preview-header {
-  padding-top: 34px;
+  padding-top: calc(34px + var(--safe-top));
 }
 
 .back-btn,
@@ -561,6 +563,14 @@ button {
   color: var(--ink-light);
   font-size: 15px;
   font-style: italic;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px 10px 0;
+  margin-left: -12px;
 }
 
 .back-btn:hover,
@@ -947,7 +957,7 @@ body.settings-overlay-open {
 
 .view-run {
   justify-content: space-between;
-  padding: 16px 24px 42px;
+  padding: calc(16px + var(--safe-top)) 24px calc(42px + var(--safe-bottom));
 }
 
 .timer-topbar {
@@ -1088,7 +1098,7 @@ body.settings-overlay-open {
 .view-rest {
   justify-content: center;
   align-items: center;
-  padding: 24px;
+  padding: calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
   text-align: center;
 }
 
@@ -1275,7 +1285,7 @@ body.settings-overlay-open {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(24px + var(--safe-bottom));
   transform: translate(-50%, 16px);
   padding: 9px 18px;
   color: var(--ink);

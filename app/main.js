@@ -53,13 +53,17 @@ const state = {
   linkError: "",
   linkCodeInput: "",
   editingIndex: null,
+  currentView: "home",
 };
 
 const $ = (id) => document.getElementById(id);
 const CATEGORY_COLOR_CLASSES = CATEGORY_ORDER.map((category) => `cat-${category}`);
+const TIMER_WAKE_LOCK_TYPE = "screen";
 
 let toastTimer;
 let syncClient = null;
+let timerWakeLock = null;
+let timerWakeLockRequest = null;
 
 function esc(value) {
   const div = document.createElement("div");
@@ -111,7 +115,76 @@ function toast(message) {
 function showView(name) {
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
   $(`view-${name}`).classList.add("active");
+  state.currentView = name;
+  syncTimerWakeLock();
   window.scrollTo(0, 0);
+}
+
+function isTimerViewActive() {
+  return state.currentView === "run" || state.currentView === "rest";
+}
+
+function syncTimerWakeLock() {
+  if (!isTimerViewActive() || document.visibilityState === "hidden") {
+    releaseTimerWakeLock();
+    return;
+  }
+
+  acquireTimerWakeLock();
+}
+
+function acquireTimerWakeLock() {
+  if (!("wakeLock" in navigator) || !window.isSecureContext) {
+    return;
+  }
+
+  if (
+    !isTimerViewActive() ||
+    document.visibilityState === "hidden" ||
+    (timerWakeLock && !timerWakeLock.released) ||
+    timerWakeLockRequest
+  ) {
+    return;
+  }
+
+  timerWakeLockRequest = navigator.wakeLock
+    .request(TIMER_WAKE_LOCK_TYPE)
+    .then((wakeLock) => {
+      if (!isTimerViewActive() || document.visibilityState === "hidden") {
+        wakeLock.release().catch(() => {});
+        return;
+      }
+
+      timerWakeLock = wakeLock;
+      timerWakeLock.addEventListener("release", handleTimerWakeLockRelease, { once: true });
+    })
+    .catch(() => {})
+    .finally(() => {
+      timerWakeLockRequest = null;
+    });
+}
+
+function releaseTimerWakeLock() {
+  const wakeLock = timerWakeLock;
+  timerWakeLock = null;
+
+  if (!wakeLock || wakeLock.released) {
+    return;
+  }
+
+  wakeLock.release().catch(() => {});
+}
+
+function handleTimerWakeLockRelease() {
+  timerWakeLock = null;
+
+  if (isTimerViewActive() && document.visibilityState === "visible") {
+    acquireTimerWakeLock();
+  }
+}
+
+function handleVisibilityChange() {
+  syncTimerWakeLock();
 }
 
 function todayEntry() {
@@ -980,6 +1053,7 @@ async function init() {
   attachChipHandlers();
   attachSizeHandlers();
   renderHome();
+  document.addEventListener("visibilitychange", handleVisibilityChange);
 
   $("link-btn").addEventListener("click", () => {
     toggleLinkPanel().catch((error) => {
