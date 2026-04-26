@@ -537,8 +537,7 @@ function beginRun() {
   state.completed = [];
   state.paused = false;
   state.currentStackId = `r-${Date.now()}`;
-  showView("run");
-  startSnack();
+  startRest();
 }
 
 function startSnack() {
