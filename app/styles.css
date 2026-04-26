@@ -477,25 +477,6 @@ button {
   color: var(--ink);
 }
 
-.chip.cat-cardio.active {
-  color: var(--cardio);
-}
-
-.chip.cat-strength.active {
-  color: var(--strength);
-}
-
-.chip.cat-core.active {
-  color: var(--core);
-}
-
-.chip.cat-mobility.active {
-  color: var(--mobility);
-}
-
-.chip.cat-restore.active {
-  color: var(--restore);
-}
 
 .advanced {
   max-height: 0;
