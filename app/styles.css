@@ -1048,7 +1048,6 @@ body.settings-overlay-open {
   background: var(--ink-mid);
 }
 
-.timer-next,
 .rest-next {
   margin-top: 42px;
   color: var(--ink-light);
@@ -1056,9 +1055,32 @@ body.settings-overlay-open {
   font-style: italic;
 }
 
-.em-dash {
+.timer-stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: center;
+}
+
+.timer-stack-item {
+  font-size: 15px;
+  font-style: italic;
   color: var(--ink-faint);
-  margin-right: 6px;
+  line-height: 1.2;
+  transition: color 0.2s;
+}
+
+.timer-stack-item.is-current {
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.timer-stack-item.is-done {
+  text-decoration: line-through;
 }
 
 .timer-bottom {

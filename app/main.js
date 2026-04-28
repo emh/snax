@@ -117,7 +117,7 @@ function showView(name) {
   $(`view-${name}`).classList.add("active");
   state.currentView = name;
   syncTimerWakeLock();
-  window.scrollTo(0, 0);
+  requestAnimationFrame(() => window.scrollTo(0, 0));
 }
 
 function isTimerViewActive() {
@@ -549,16 +549,17 @@ function startSnack() {
     return;
   }
 
-  const nextSnack = state.stack[state.runIdx + 1];
-
   $("timer-step").textContent = `snack ${state.runIdx + 1} / ${state.stack.length}`;
   $("timer-category").textContent = snack.category;
   $("timer-category").className = `timer-category cat-${snack.category}`;
   $("timer-name").textContent = snack.name;
   $("timer-intensity").innerHTML = renderIntensityPips(snack.intensity, snack.category);
-  $("timer-next").innerHTML = nextSnack
-    ? `<span class="em-dash">--</span>next: ${esc(nextSnack.name)}`
-    : `<span class="em-dash">--</span>last one. finish strong.`;
+  $("timer-stack").innerHTML = state.stack
+    .map((snack, i) => {
+      const cls = i < state.runIdx ? "is-done" : i === state.runIdx ? "is-current" : "";
+      return `<li class="timer-stack-item${cls ? ` ${cls}` : ""}">${esc(snack.name)}</li>`;
+    })
+    .join("");
   $("timer-fill").className = `timer-progress-fill cat-${snack.category}`;
 
   state.secondsLeft = SNACK_DURATION;
