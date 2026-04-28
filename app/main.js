@@ -37,6 +37,9 @@ const state = {
   stack: [],
   runIdx: 0,
   secondsLeft: SNACK_DURATION,
+  snackEndTime: 0,
+  restEndTime: 0,
+  pauseStartTime: 0,
   paused: false,
   timerHandle: null,
   restHandle: null,
@@ -91,11 +94,9 @@ function beep(frequency, duration, startOffset = 0) {
   } catch (_) {}
 }
 
-function beepRestCountdown() {
-  beep(880, 0.08, 0);
-  beep(880, 0.08, 0.25);
-  beep(880, 0.35, 0.5);
-}
+try {
+  screen.orientation.lock("portrait-primary").catch(() => {});
+} catch (_) {}
 
 function esc(value) {
   const div = document.createElement("div");
@@ -596,23 +597,23 @@ function startSnack() {
   $("timer-fill").className = `timer-progress-fill cat-${snack.category}`;
 
   state.secondsLeft = SNACK_DURATION;
+  state.snackEndTime = Date.now() + SNACK_DURATION * 1000;
   state.paused = false;
   $("btn-pause").textContent = "pause";
   $("btn-pause").classList.remove("pause-active");
+  $("rest-btn-pause").textContent = "pause";
+  $("rest-btn-pause").classList.remove("pause-active");
 
   updateTimerDisplay();
   state.timerHandle = window.setInterval(tickSnack, 1000);
 }
 
 function tickSnack() {
-  if (state.paused) {
-    return;
-  }
-
-  state.secondsLeft -= 1;
+  if (state.paused) return;
+  const prev = state.secondsLeft;
+  state.secondsLeft = Math.max(0, Math.round((state.snackEndTime - Date.now()) / 1000));
+  if (prev > 30 && state.secondsLeft <= 30) beep(660, 0.08);
   updateTimerDisplay();
-
-  if (state.secondsLeft === 30) beep(660, 0.08);
   if (state.secondsLeft <= 0) {
     beep(880, 0.5);
     completeCurrentSnack(false);
@@ -647,17 +648,31 @@ function startRest() {
   clearInterval(state.restHandle);
   showView("rest");
 
-  let seconds = REST_DURATION;
-  $("rest-seconds").textContent = String(seconds);
-  $("rest-next-name").textContent = state.stack[state.runIdx].name;
+  state.restEndTime = Date.now() + REST_DURATION * 1000;
+  const beeped = new Set();
+
+  $("rest-seconds").textContent = String(REST_DURATION);
   $("rest-fill").style.transform = "scaleX(0)";
+  $("rest-stack").innerHTML = state.stack
+    .map((snack, i) => {
+      const cls = i < state.runIdx ? "is-done" : i === state.runIdx ? "is-current" : "";
+      return `<li class="timer-stack-item${cls ? ` ${cls}` : ""}">${esc(snack.name)}</li>`;
+    })
+    .join("");
 
   state.restHandle = window.setInterval(() => {
-    seconds -= 1;
+    if (state.paused) return;
+    const seconds = Math.max(0, Math.round((state.restEndTime - Date.now()) / 1000));
     $("rest-seconds").textContent = String(seconds);
     $("rest-fill").style.transform = `scaleX(${1 - seconds / REST_DURATION})`;
 
-    if (seconds === 3) beepRestCountdown();
+    if (!beeped.has(seconds)) {
+      beeped.add(seconds);
+      if (seconds === 2) beep(880, 0.08);
+      if (seconds === 1) beep(880, 0.08);
+      if (seconds === 0) beep(880, 0.35);
+    }
+
     if (seconds <= 0) {
       clearInterval(state.restHandle);
       showView("run");
@@ -691,9 +706,19 @@ function renderDone() {
 }
 
 function togglePause() {
-  state.paused = !state.paused;
+  if (state.paused) {
+    const pausedFor = Date.now() - state.pauseStartTime;
+    if (state.currentView === "run") state.snackEndTime += pausedFor;
+    if (state.currentView === "rest") state.restEndTime += pausedFor;
+    state.paused = false;
+  } else {
+    state.pauseStartTime = Date.now();
+    state.paused = true;
+  }
   $("btn-pause").textContent = state.paused ? "resume" : "pause";
   $("btn-pause").classList.toggle("pause-active", state.paused);
+  $("rest-btn-pause").textContent = state.paused ? "resume" : "pause";
+  $("rest-btn-pause").classList.toggle("pause-active", state.paused);
 }
 
 function skipSnack() {
@@ -1127,6 +1152,7 @@ async function init() {
   $("begin-btn").addEventListener("click", beginRun);
   $("btn-prev").addEventListener("click", prevSnack);
   $("btn-pause").addEventListener("click", togglePause);
+  $("rest-btn-pause").addEventListener("click", togglePause);
   $("btn-skip").addEventListener("click", skipSnack);
   $("timer-quit").addEventListener("click", quitRun);
   $("add-snack-btn").addEventListener("click", addSnack);
@@ -1248,6 +1274,22 @@ async function init() {
 
   await handleIncomingLink();
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (state.currentView === "run" && !state.paused && state.snackEndTime) {
+    state.secondsLeft = Math.max(0, Math.round((state.snackEndTime - Date.now()) / 1000));
+    updateTimerDisplay();
+    if (state.secondsLeft <= 0) completeCurrentSnack(false);
+  } else if (state.currentView === "rest" && !state.paused && state.restEndTime) {
+    const left = Math.max(0, Math.round((state.restEndTime - Date.now()) / 1000));
+    if (left <= 0) {
+      clearInterval(state.restHandle);
+      showView("run");
+      startSnack();
+    }
+  }
+});
 
 init();
 registerServiceWorker();

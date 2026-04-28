@@ -168,10 +168,16 @@
       </section>
 
       <section id="view-rest" class="view view-rest">
-        <p class="rest-label">rest / breathe</p>
-        <p class="rest-seconds" id="rest-seconds">10</p>
-        <div class="rest-bar"><div class="rest-bar-fill" id="rest-fill"></div></div>
-        <p class="rest-next">next -- <span class="rest-next-name" id="rest-next-name">ring row</span></p>
+        <div></div>
+        <div class="rest-stage">
+          <p class="rest-label">rest / breathe</p>
+          <p class="rest-seconds" id="rest-seconds">10</p>
+          <div class="rest-bar"><div class="rest-bar-fill" id="rest-fill"></div></div>
+          <ol class="timer-stack" id="rest-stack"></ol>
+        </div>
+        <div class="rest-bottom">
+          <button class="timer-btn" id="rest-btn-pause" type="button">pause</button>
+        </div>
       </section>
 
       <section id="view-done" class="view view-done">

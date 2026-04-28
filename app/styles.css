@@ -1048,12 +1048,6 @@ body.settings-overlay-open {
   background: var(--ink-mid);
 }
 
-.rest-next {
-  margin-top: 42px;
-  color: var(--ink-light);
-  font-size: 17px;
-  font-style: italic;
-}
 
 .timer-stack {
   list-style: none;
@@ -1099,10 +1093,23 @@ body.settings-overlay-open {
 }
 
 .view-rest {
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  padding: calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
+  padding: calc(16px + var(--safe-top)) 24px calc(42px + var(--safe-bottom));
   text-align: center;
+}
+
+.rest-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.rest-bottom {
+  display: flex;
+  justify-content: center;
 }
 
 .rest-label {
@@ -1115,10 +1122,6 @@ body.settings-overlay-open {
   color: var(--ink-mid);
 }
 
-.rest-next-name {
-  color: var(--ink);
-  font-weight: 500;
-}
 
 .done-wrap {
   padding-top: 26px;
