@@ -64,6 +64,38 @@ let toastTimer;
 let syncClient = null;
 let timerWakeLock = null;
 let timerWakeLockRequest = null;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (_) {}
+  }
+}
+
+function beep(frequency, duration, startOffset = 0) {
+  if (!audioCtx) return;
+  try {
+    const t = audioCtx.currentTime + startOffset;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = frequency;
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    osc.start(t);
+    osc.stop(t + duration + 0.01);
+  } catch (_) {}
+}
+
+function beepRestCountdown() {
+  beep(880, 0.08, 0);
+  beep(880, 0.08, 0.25);
+  beep(880, 0.35, 0.5);
+}
 
 function esc(value) {
   const div = document.createElement("div");
@@ -533,6 +565,7 @@ function beginRun() {
     return;
   }
 
+  initAudio();
   state.runIdx = 0;
   state.completed = [];
   state.paused = false;
@@ -579,7 +612,9 @@ function tickSnack() {
   state.secondsLeft -= 1;
   updateTimerDisplay();
 
+  if (state.secondsLeft === 30) beep(660, 0.08);
   if (state.secondsLeft <= 0) {
+    beep(880, 0.5);
     completeCurrentSnack(false);
   }
 }
@@ -622,6 +657,7 @@ function startRest() {
     $("rest-seconds").textContent = String(seconds);
     $("rest-fill").style.transform = `scaleX(${1 - seconds / REST_DURATION})`;
 
+    if (seconds === 3) beepRestCountdown();
     if (seconds <= 0) {
       clearInterval(state.restHandle);
       showView("run");
