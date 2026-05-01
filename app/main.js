@@ -19,6 +19,7 @@ import {
   getLoad,
   groupByStack,
   pickStack,
+  resolveSnacks,
   summarizeEntries,
   todayKey,
 } from "./model.js";
@@ -224,6 +225,10 @@ function todayEntry() {
   return ensureHistoryEntry(state.history, todayKey());
 }
 
+function resolveEntrySnacks(entry) {
+  return entry ? resolveSnacks(entry.snacks, state.library) : [];
+}
+
 function renderSparkBars(snacks, variant, emptyLabel) {
   if (snacks.length === 0) {
     return `<span class="spark-empty">${esc(emptyLabel)}</span>`;
@@ -308,7 +313,7 @@ function renderDate() {
 
 function renderToday() {
   const entry = findHistoryEntry(state.history, todayKey());
-  const snacks = entry ? entry.snacks : [];
+  const snacks = resolveEntrySnacks(entry);
   const panel = $("today-panel");
   $("today-meta").textContent = formatMetaText(snacks);
   $("today-spark").innerHTML = renderSparkBars(snacks, "today", "quiet so far");
@@ -326,10 +331,14 @@ function renderArchive() {
     return;
   }
 
-  const stats = summarizeEntries(entries);
+  const resolvedEntries = entries.map((entry) => ({
+    dateKey: entry.dateKey,
+    snacks: resolveEntrySnacks(entry),
+  }));
+  const stats = summarizeEntries(resolvedEntries);
 
   $("archive-stats").textContent = `${stats.count} snacks / load ${stats.load}`;
-  $("archive-list").innerHTML = entries
+  $("archive-list").innerHTML = resolvedEntries
     .map(
       (entry) => `
         <div class="archive-row has-snacks" data-date="${esc(entry.dateKey)}">
@@ -478,7 +487,8 @@ function renderSettings() {
     state.settingsFilters.query.trim().length > 0;
 
   $("settings-search-input").value = state.settingsFilters.query;
-  $("settings-count").textContent = formatSettingsCount(visibleSnacks.length, state.library.length, hasActiveFilters);
+  const totalActive = state.library.filter((exercise) => !exercise.deleted).length;
+  $("settings-count").textContent = formatSettingsCount(visibleSnacks.length, totalActive, hasActiveFilters);
   $("settings-visible-toggle").checked = visibleSnacks.length > 0 && visibleEnabledCount === visibleSnacks.length;
   $("settings-visible-toggle").indeterminate =
     visibleEnabledCount > 0 && visibleEnabledCount < visibleSnacks.length;
@@ -526,6 +536,7 @@ function getVisibleLibrarySnacks() {
   const query = state.settingsFilters.query.trim().toLowerCase();
 
   return state.library.map((exercise, index) => ({ exercise, index })).filter(({ exercise }) => {
+    if (exercise.deleted) return false;
     const matchesCategory =
       state.settingsFilters.category === "any" || exercise.category === state.settingsFilters.category;
     const matchesIntensity =
@@ -563,7 +574,8 @@ function renderSettingsEditor() {
   $("settings-dialog-tagline").textContent = exercise.tagline || "add a tagline";
   $("settings-edit-bar").className = `day-bar cat-${exercise.category}`;
   $("settings-edit-bar").dataset.intensity = String(exercise.intensity);
-  $("settings-remove-btn").disabled = state.library.length === 1;
+  $("settings-remove-btn").disabled =
+    state.library.filter((item) => !item.deleted).length <= 1;
 }
 
 function runSingleSnack(index) {
@@ -644,7 +656,7 @@ function completeCurrentSnack(skipped) {
   clearInterval(state.timerHandle);
 
   state.completed.push({
-    ...state.stack[state.runIdx],
+    id: state.stack[state.runIdx].id,
     at: new Date().toISOString(),
     stack: state.currentStackId,
     skipped,
@@ -705,9 +717,10 @@ function finishRun() {
 }
 
 function renderDone() {
-  $("done-title").textContent = `${formatSizeLabel(state.completed.length)} complete`;
-  $("done-spark").innerHTML = renderSparkBars(state.completed, "done", "");
-  $("done-list").innerHTML = state.completed
+  const completed = resolveSnacks(state.completed, state.library);
+  $("done-title").textContent = `${formatSizeLabel(completed.length)} complete`;
+  $("done-spark").innerHTML = renderSparkBars(completed, "done", "");
+  $("done-list").innerHTML = completed
     .map(
       (snack, index) => `
         <div class="done-list-item">
@@ -717,7 +730,7 @@ function renderDone() {
       `,
     )
     .join("");
-  $("done-stats").textContent = `load ${getLoad(state.completed)}`;
+  $("done-stats").textContent = `load ${getLoad(completed)}`;
 }
 
 function togglePause() {
@@ -777,10 +790,12 @@ function showDay(dateKey) {
     return;
   }
 
+  const snacks = resolveEntrySnacks(entry);
+
   $("day-title").textContent = formatDayTitle(dateKey);
-  $("day-sub").textContent = `${formatMonthDay(dateKey)} / ${entry.snacks.length} snack${entry.snacks.length === 1 ? "" : "s"} / load ${getLoad(entry.snacks)}`;
-  $("day-hero-spark").innerHTML = renderSparkBars(entry.snacks, "day", "");
-  $("day-list").innerHTML = groupByStack(entry.snacks)
+  $("day-sub").textContent = `${formatMonthDay(dateKey)} / ${snacks.length} snack${snacks.length === 1 ? "" : "s"} / load ${getLoad(snacks)}`;
+  $("day-hero-spark").innerHTML = renderSparkBars(snacks, "day", "");
+  $("day-list").innerHTML = groupByStack(snacks)
     .map(
       (group) => `
         <div class="day-group">
@@ -1109,17 +1124,21 @@ function addSnack() {
 }
 
 function deleteSnack(index) {
-  if (state.library.length === 1) {
+  const activeCount = state.library.filter((exercise) => !exercise.deleted).length;
+  if (activeCount <= 1) {
     toast("keep at least one snack");
     return;
   }
 
-  state.library.splice(index, 1);
+  const exercise = state.library[index];
+  if (!exercise || exercise.deleted) {
+    return;
+  }
+
+  exercise.deleted = true;
   save();
   if (state.editingIndex === index) {
     state.editingIndex = null;
-  } else if (state.editingIndex != null && state.editingIndex > index) {
-    state.editingIndex -= 1;
   }
   renderSettings();
   renderSettingsEditor();

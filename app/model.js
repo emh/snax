@@ -117,6 +117,7 @@ export function hydrateExercise(exercise, index = 0) {
     category: normalizeCategory(String(source.category || "")),
     intensity: normalizeIntensity(source.intensity),
     enabled: normalizeEnabled(source.enabled),
+    deleted: Boolean(source.deleted),
   };
 }
 
@@ -141,14 +142,35 @@ export function hydrateSnack(snack) {
 
   return {
     id: String(source.id || ""),
-    name: String(source.name || "").trim(),
-    tagline: String(source.tagline || source.cue || "").trim(),
-    category: normalizeCategory(String(source.category || "")),
-    intensity: normalizeIntensity(source.intensity),
     at: source.at ? String(source.at) : null,
     stack: source.stack ? String(source.stack) : null,
     skipped: Boolean(source.skipped),
   };
+}
+
+export function resolveSnack(snack, library) {
+  const exercise = library.find((item) => item.id === snack.id);
+  if (exercise) {
+    return {
+      ...snack,
+      name: exercise.name,
+      tagline: exercise.tagline,
+      category: exercise.category,
+      intensity: exercise.intensity,
+    };
+  }
+
+  return {
+    ...snack,
+    name: snack.id || "unknown snack",
+    tagline: "",
+    category: "mobility",
+    intensity: 1,
+  };
+}
+
+export function resolveSnacks(snacks, library) {
+  return snacks.map((snack) => resolveSnack(snack, library));
 }
 
 export function toDateKey(date) {
@@ -198,6 +220,7 @@ export function ensureHistoryEntry(history, dateKey) {
 
 export function filterExercises(library, filters) {
   return library.filter((exercise) => {
+    if (exercise.deleted) return false;
     const isEnabled = exercise.enabled !== false;
     const matchesCategory = filters.category === "any" || exercise.category === filters.category;
     const matchesIntensity = filters.intensity === "any" || exercise.intensity === Number(filters.intensity);
