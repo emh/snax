@@ -31,6 +31,7 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+
 body {
   margin: 0;
   min-height: 100dvh;
@@ -765,6 +766,26 @@ button {
   display: flex;
   align-items: center;
   padding-left: 12px;
+}
+
+.settings-go-btn {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.settings-go-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
 }
 
 .settings-empty {

@@ -502,6 +502,12 @@ function renderSettings() {
                     </div>
                   </div>
                 </button>
+                <button
+                  class="settings-go-btn"
+                  data-action="run-single-snack"
+                  data-index="${index}"
+                  type="button"
+                >go</button>
                 <label class="settings-enabled-toggle">
                   <input
                     data-action="toggle-snack-enabled"
@@ -558,6 +564,15 @@ function renderSettingsEditor() {
   $("settings-edit-bar").className = `day-bar cat-${exercise.category}`;
   $("settings-edit-bar").dataset.intensity = String(exercise.intensity);
   $("settings-remove-btn").disabled = state.library.length === 1;
+}
+
+function runSingleSnack(index) {
+  const exercise = state.library[index];
+  if (!exercise) {
+    return;
+  }
+  state.stack = [exercise];
+  beginRun();
 }
 
 function beginRun() {
@@ -1220,6 +1235,11 @@ async function init() {
 
   $("settings-list").addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
+    const goBtn = target ? target.closest('[data-action="run-single-snack"]') : null;
+    if (goBtn) {
+      runSingleSnack(Number(goBtn.dataset.index));
+      return;
+    }
     const button = target ? target.closest('[data-action="edit-snack"]') : null;
     if (!button) {
       return;
