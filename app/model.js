@@ -60,6 +60,12 @@ const DEFAULT_LIBRARY = [
   { id: "90-90-hip-switches", name: "90/90 hip switches", tagline: "rotate cleanly through the hips", category: "mobility", intensity: 1 },
   { id: "single-leg-glute-bridge", name: "single leg glute bridge", tagline: "drive heel, square hips", category: "strength", intensity: 2 },
   { id: "handstand", name: "handstand", tagline: "stack tall, squeeze everything", category: "strength", intensity: 3 },
+  { id: "kb-swings", name: "kettlebell swings", tagline: "hinge sharp, snap the hips", category: "cardio", intensity: 2 },
+  { id: "kb-snatches", name: "kettlebell snatches", tagline: "hike back, punch through at the top", category: "strength", intensity: 3 },
+  { id: "kb-goblet-squat", name: "goblet squat", tagline: "elbows in, chest up, sink deep", category: "strength", intensity: 2 },
+  { id: "kb-turkish-getup", name: "turkish getup", tagline: "eyes on the bell, move one step at a time", category: "strength", intensity: 3 },
+  { id: "kb-clean-and-press", name: "kettlebell clean and press", tagline: "clean tight, press long", category: "strength", intensity: 3 },
+  { id: "mace-360", name: "steel mace 360", tagline: "lead with the head, pull through smooth", category: "strength", intensity: 2 },
 ];
 
 function normalizeCategory(category) {
@@ -130,7 +136,14 @@ export function hydrateLibrary(library) {
     .filter((exercise) => exercise && typeof exercise === "object")
     .map((exercise, index) => hydrateExercise(exercise, index));
 
-  return normalized.length > 0 ? normalized : createDefaultLibrary();
+  if (normalized.length === 0) {
+    return createDefaultLibrary();
+  }
+
+  const existingIds = new Set(normalized.map((e) => e.id));
+  const newDefaults = DEFAULT_LIBRARY.filter((e) => !existingIds.has(e.id)).map((e) => hydrateExercise(e));
+
+  return [...normalized, ...newDefaults];
 }
 
 export function createSeedHistory() {
