@@ -117,7 +117,7 @@
         <section class="archive" id="archive-section">
           <div class="archive-head">
             <span class="section-label">History</span>
-            <span class="section-label" id="archive-stats">7d / 0 snacks / load 0</span>
+            <span class="section-label" id="archive-stats">0 days / 0 snacks / load 0</span>
           </div>
 
           <div class="archive-list" id="archive-list"></div>
@@ -216,6 +216,9 @@
           <button class="back-btn" data-action="home" type="button">back</button>
           <h2 class="preview-title">library</h2>
           <div class="settings-actions">
+            <button class="btn-muted" id="export-json-btn" type="button">export json</button>
+            <button class="btn-muted" id="import-json-btn" type="button">import json</button>
+            <input id="import-json-input" type="file" accept="application/json,.json" hidden />
             <button class="btn-muted" id="add-snack-btn" type="button">add snack</button>
           </div>
 
@@ -259,6 +262,60 @@
         </div>
 
         <div class="settings-list" id="settings-list"></div>
+
+        <div class="import-overlay" id="import-overlay" hidden>
+          <button class="settings-overlay-scrim" id="import-overlay-scrim" type="button" aria-label="Cancel import"></button>
+
+          <div class="import-dialog" role="dialog" aria-modal="true" aria-labelledby="import-dialog-title">
+            <h3 class="settings-dialog-title" id="import-dialog-title">import json</h3>
+            <p class="import-file-name" id="import-file-name"></p>
+
+            <div class="import-sections">
+              <section class="import-section">
+                <div>
+                  <p class="import-section-title">history</p>
+                  <p class="import-section-meta" id="import-history-meta">0 entries / 0 new</p>
+                </div>
+                <fieldset class="import-mode" id="import-history-mode">
+                  <legend>History import mode</legend>
+                  <label>
+                    <input type="radio" name="import-history-mode" value="merge" checked />
+                    <span>merge</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="import-history-mode" value="overwrite" />
+                    <span>overwrite</span>
+                  </label>
+                </fieldset>
+              </section>
+
+              <section class="import-section">
+                <div>
+                  <p class="import-section-title">library</p>
+                  <p class="import-section-meta" id="import-library-meta">0 exercises / 0 new</p>
+                </div>
+                <fieldset class="import-mode" id="import-library-mode">
+                  <legend>Library import mode</legend>
+                  <label>
+                    <input type="radio" name="import-library-mode" value="merge" checked />
+                    <span>merge</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="import-library-mode" value="overwrite" />
+                    <span>overwrite</span>
+                  </label>
+                </fieldset>
+              </section>
+            </div>
+
+            <p class="import-warning" id="import-warning"></p>
+
+            <div class="import-actions">
+              <button class="btn-muted" id="import-cancel-btn" type="button">cancel</button>
+              <button class="btn-muted" id="import-confirm-btn" type="button">ok</button>
+            </div>
+          </div>
+        </div>
 
         <div class="settings-overlay" id="settings-overlay" hidden>
           <button class="settings-overlay-scrim" id="settings-overlay-scrim" type="button" aria-label="Close editor"></button>

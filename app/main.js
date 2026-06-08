@@ -18,8 +18,11 @@ import {
   formatTimerSeconds,
   getLoad,
   groupByStack,
+  hydrateExercise,
+  hydrateSnack,
   pickStack,
   resolveSnacks,
+  sortHistoryDescending,
   summarizeEntries,
   todayKey,
 } from "./model.js";
@@ -58,10 +61,17 @@ const state = {
   linkCodeInput: "",
   editingIndex: null,
   currentView: "home",
+  collapsedMonths: new Set(),
+  pendingImport: null,
+  importModes: {
+    history: "merge",
+    library: "merge",
+  },
 };
 
 const $ = (id) => document.getElementById(id);
 const CATEGORY_COLOR_CLASSES = CATEGORY_ORDER.map((category) => `cat-${category}`);
+const EXPORT_SCHEMA = "snax.history.v1";
 const TIMER_WAKE_LOCK_TYPE = "screen";
 
 let toastTimer;
@@ -320,8 +330,46 @@ function renderToday() {
   panel.classList.toggle("clickable", snacks.length > 0);
 }
 
+function monthKeyForDate(dateKey) {
+  return String(dateKey || "").slice(0, 7);
+}
+
+function formatMonthTitle(monthKey) {
+  const [year, month] = String(monthKey).split("-").map(Number);
+  return new Intl.DateTimeFormat(undefined, {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(year, month - 1, 1, 12, 0, 0, 0));
+}
+
+function groupEntriesByMonth(entries) {
+  const groups = [];
+  const groupsByKey = new Map();
+
+  entries.forEach((entry) => {
+    const monthKey = monthKeyForDate(entry.dateKey);
+    if (!monthKey) {
+      return;
+    }
+
+    let group = groupsByKey.get(monthKey);
+    if (!group) {
+      group = { monthKey, entries: [] };
+      groupsByKey.set(monthKey, group);
+      groups.push(group);
+    }
+
+    group.entries.push(entry);
+  });
+
+  return groups;
+}
+
 function renderArchive() {
-  const entries = state.history.filter((entry) => entry.snacks.length > 0).slice(0, 7);
+  const entries = state.history.map((entry) => ({
+    dateKey: entry.dateKey,
+    snacks: resolveEntrySnacks(entry),
+  }));
   const archiveSection = $("archive-section");
 
   archiveSection.hidden = entries.length === 0;
@@ -331,23 +379,46 @@ function renderArchive() {
     return;
   }
 
-  const resolvedEntries = entries.map((entry) => ({
-    dateKey: entry.dateKey,
-    snacks: resolveEntrySnacks(entry),
-  }));
-  const stats = summarizeEntries(resolvedEntries);
+  const stats = summarizeEntries(entries);
 
-  $("archive-stats").textContent = `${stats.count} snacks / load ${stats.load}`;
-  $("archive-list").innerHTML = resolvedEntries
-    .map(
-      (entry) => `
-        <div class="archive-row has-snacks" data-date="${esc(entry.dateKey)}">
-          <span class="archive-date">${esc(formatShortDate(entry.dateKey))}</span>
-          <div class="archive-spark">${renderSparkBars(entry.snacks, "archive", "")}</div>
-        </div>
-      `,
-    )
+  $("archive-stats").textContent = `${entries.length} days / ${stats.count} snacks / load ${stats.load}`;
+  $("archive-list").innerHTML = groupEntriesByMonth(entries)
+    .map((group) => {
+      const monthStats = summarizeEntries(group.entries);
+      const isCollapsed = state.collapsedMonths.has(group.monthKey);
+      return `
+        <section class="archive-month">
+          <button class="archive-month-toggle" type="button" data-month="${esc(group.monthKey)}" aria-expanded="${esc(String(!isCollapsed))}">
+            <span class="archive-month-title">${esc(formatMonthTitle(group.monthKey))}</span>
+            <span class="archive-month-meta">${group.entries.length} days / ${monthStats.count} snacks / load ${monthStats.load}</span>
+          </button>
+          <div class="archive-month-days" ${isCollapsed ? "hidden" : ""}>
+            ${group.entries
+              .map((entry) => {
+                const hasSnacks = entry.snacks.length > 0;
+                return `
+                  <div class="archive-row ${hasSnacks ? "has-snacks" : ""}" ${hasSnacks ? `data-date="${esc(entry.dateKey)}"` : ""}>
+                    <span class="archive-date">${esc(formatShortDate(entry.dateKey))}</span>
+                    <div class="archive-spark">${renderSparkBars(entry.snacks, "archive", "quiet")}</div>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </section>
+      `;
+    })
     .join("");
+}
+
+function toggleArchiveMonth(monthKey) {
+  if (state.collapsedMonths.has(monthKey)) {
+    state.collapsedMonths.delete(monthKey);
+  } else {
+    state.collapsedMonths.add(monthKey);
+  }
+
+  renderArchive();
 }
 
 function currentSnapshot() {
@@ -1144,6 +1215,400 @@ function deleteSnack(index) {
   renderSettingsEditor();
 }
 
+function exportJson() {
+  const payload = {
+    schema: EXPORT_SCHEMA,
+    exportedAt: new Date().toISOString(),
+    history: state.history,
+    library: state.library,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `snax-history-${todayKey()}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  toast("snax json exported");
+}
+
+async function importJsonFile(file) {
+  if (!file) {
+    return;
+  }
+
+  try {
+    const imported = parseImportPayload(JSON.parse(await file.text()));
+    openImportDialog(imported, file.name || "snax import");
+  } catch (error) {
+    toast(error instanceof Error ? error.message : "could not import json");
+  }
+}
+
+function parseImportPayload(payload) {
+  if (Array.isArray(payload)) {
+    return {
+      history: hydrateImportedHistory(payload),
+      library: [],
+    };
+  }
+
+  const snapshot = payload?.snapshot && typeof payload.snapshot === "object" ? payload.snapshot : payload;
+  if (!snapshot || typeof snapshot !== "object") {
+    throw new Error("that json does not look like snax data");
+  }
+
+  const hasHistory = Array.isArray(snapshot.history);
+  const hasLibrary = Array.isArray(snapshot.library);
+  if (!hasHistory && !hasLibrary) {
+    throw new Error("that json does not include snax history or library");
+  }
+
+  return {
+    history: hasHistory ? hydrateImportedHistory(snapshot.history) : [],
+    library: hasLibrary ? hydrateImportedLibrary(snapshot.library) : [],
+  };
+}
+
+function hydrateImportedHistory(history) {
+  const entriesByDate = new Map();
+
+  history
+    .filter((entry) => entry && typeof entry === "object")
+    .forEach((entry) => {
+      const dateKey = String(entry.dateKey || entry.date || "");
+      if (!dateKey) {
+        return;
+      }
+
+      const existing = entriesByDate.get(dateKey) || { dateKey, snacks: [] };
+      const existingSnackKeys = new Set(existing.snacks.map((snack) => snackImportKey(snack)));
+      const snacks = Array.isArray(entry.snacks) ? entry.snacks.map((snack) => hydrateSnack(snack)) : [];
+      snacks.forEach((snack) => {
+        const key = snackImportKey(snack);
+        if (existingSnackKeys.has(key)) {
+          return;
+        }
+
+        existing.snacks.push(snack);
+        existingSnackKeys.add(key);
+      });
+      entriesByDate.set(dateKey, existing);
+    });
+
+  return sortHistoryDescending([...entriesByDate.values()]);
+}
+
+function hydrateImportedLibrary(library) {
+  return library
+    .filter((exercise) => exercise && typeof exercise === "object")
+    .map((exercise, index) => hydrateExercise(exercise, index));
+}
+
+function mergeKeyForExerciseName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function countNewHistoryEntries(importedHistory) {
+  const localDateKeys = new Set(state.history.map((entry) => entry.dateKey));
+  return importedHistory.filter((entry) => !localDateKeys.has(entry.dateKey)).length;
+}
+
+function countNewLibraryExercises(importedLibrary) {
+  const localNames = new Set(state.library.map((exercise) => mergeKeyForExerciseName(exercise.name)));
+  const seenImportedNames = new Set();
+  let count = 0;
+
+  importedLibrary.forEach((exercise) => {
+    const key = mergeKeyForExerciseName(exercise.name);
+    if (!key || seenImportedNames.has(key)) {
+      return;
+    }
+
+    seenImportedNames.add(key);
+    if (!localNames.has(key)) {
+      count += 1;
+    }
+  });
+
+  return count;
+}
+
+function openImportDialog(imported, fileName) {
+  state.pendingImport = {
+    fileName,
+    data: imported,
+    stats: {
+      historyEntries: imported.history.length,
+      newHistoryEntries: countNewHistoryEntries(imported.history),
+      libraryExercises: imported.library.length,
+      newLibraryExercises: countNewLibraryExercises(imported.library),
+    },
+  };
+  state.importModes = {
+    history: "merge",
+    library: "merge",
+  };
+  renderImportDialog();
+}
+
+function closeImportDialog() {
+  state.pendingImport = null;
+  $("import-overlay").hidden = true;
+  document.body.classList.remove("settings-overlay-open");
+}
+
+function renderImportDialog() {
+  const pendingImport = state.pendingImport;
+  const overlay = $("import-overlay");
+  overlay.hidden = !pendingImport;
+  document.body.classList.toggle("settings-overlay-open", Boolean(pendingImport));
+
+  if (!pendingImport) {
+    return;
+  }
+
+  const { stats } = pendingImport;
+  const historyDisabled = stats.historyEntries === 0;
+  const libraryDisabled = stats.libraryExercises === 0;
+
+  $("import-file-name").textContent = pendingImport.fileName;
+  $("import-history-meta").textContent = `${stats.historyEntries} entr${stats.historyEntries === 1 ? "y" : "ies"} / ${stats.newHistoryEntries} new`;
+  $("import-library-meta").textContent = `${stats.libraryExercises} exercise${stats.libraryExercises === 1 ? "" : "s"} / ${stats.newLibraryExercises} new`;
+  setImportModeControl("history", state.importModes.history, historyDisabled);
+  setImportModeControl("library", state.importModes.library, libraryDisabled);
+  $("import-warning").textContent = importWarningText(historyDisabled, libraryDisabled);
+  $("import-confirm-btn").disabled = historyDisabled && libraryDisabled;
+}
+
+function setImportModeControl(kind, mode, disabled) {
+  document.querySelectorAll(`input[name="import-${kind}-mode"]`).forEach((input) => {
+    input.checked = input.value === mode;
+    input.disabled = disabled;
+  });
+}
+
+function importWarningText(historyDisabled, libraryDisabled) {
+  if (historyDisabled && libraryDisabled) {
+    return "there is no history or library data to import";
+  }
+
+  const warnings = [];
+  if (state.importModes.history === "overwrite" && !historyDisabled) {
+    warnings.push("history overwrite replaces all local history");
+  }
+  if (state.importModes.library === "overwrite" && !libraryDisabled) {
+    warnings.push("library overwrite replaces local exercises");
+  }
+  if (state.importModes.history === "merge" && state.importModes.library === "overwrite" && !libraryDisabled) {
+    warnings.push("local history may show unknown snacks for exercises not in the imported library");
+  }
+
+  return warnings.join(" / ");
+}
+
+function updateImportMode(kind, mode) {
+  if (!state.pendingImport || !["history", "library"].includes(kind) || (mode !== "merge" && mode !== "overwrite")) {
+    return;
+  }
+
+  state.importModes[kind] = mode;
+  renderImportDialog();
+}
+
+function confirmImport() {
+  const pendingImport = state.pendingImport;
+  if (!pendingImport) {
+    return;
+  }
+
+  const imported = pendingImport.data;
+  const hasImportedHistory = imported.history.length > 0;
+  const hasImportedLibrary = imported.library.length > 0;
+  const libraryResult =
+    hasImportedLibrary && state.importModes.library === "overwrite"
+      ? overwriteImportedLibrary(imported.library)
+      : mergeImportedLibrary(state.library, imported.library);
+  const baseHistory =
+    hasImportedLibrary && state.importModes.library === "overwrite"
+      ? remapHistoryEntries(state.history, libraryResult.localIdMap)
+      : state.history;
+  const importedHistory = remapHistoryEntries(imported.history, libraryResult.importIdMap);
+  const historyResult =
+    !hasImportedHistory
+      ? { history: sortHistoryDescending(baseHistory), addedDays: 0, addedSnacks: 0 }
+      : state.importModes.history === "overwrite"
+      ? overwriteImportedHistory(importedHistory)
+      : mergeImportedHistory(baseHistory, importedHistory);
+
+  state.library = libraryResult.library;
+  state.history = historyResult.history;
+  closeImportDialog();
+  save();
+  renderHome();
+  renderSettings();
+  const historyAction = hasImportedHistory ? describeImportMode(state.importModes.history) : "kept";
+  const libraryAction = hasImportedLibrary ? describeImportMode(state.importModes.library) : "kept";
+  toast(`${historyAction} history / ${libraryAction} library`);
+}
+
+function describeImportMode(mode) {
+  return mode === "overwrite" ? "overwrote" : "merged";
+}
+
+function uniqueExerciseId(id, existingIds) {
+  const base = String(id || "snack").trim() || "snack";
+  if (!existingIds.has(base)) {
+    return base;
+  }
+
+  let index = 2;
+  let next = `${base}-import`;
+  while (existingIds.has(next)) {
+    next = `${base}-import-${index}`;
+    index += 1;
+  }
+
+  return next;
+}
+
+function mergeImportedLibrary(baseLibrary, importedLibrary) {
+  const library = baseLibrary.map((exercise) => ({ ...exercise }));
+  const importIdMap = new Map();
+  const localIdMap = new Map();
+  const existingIds = new Set(library.map((exercise) => exercise.id));
+  const exercisesByName = new Map();
+  let added = 0;
+
+  library.forEach((exercise) => {
+    localIdMap.set(exercise.id, exercise.id);
+    const key = mergeKeyForExerciseName(exercise.name);
+    if (key && !exercisesByName.has(key)) {
+      exercisesByName.set(key, exercise);
+    }
+  });
+
+  importedLibrary.forEach((importedExercise) => {
+    const key = mergeKeyForExerciseName(importedExercise.name);
+    const existingExercise = key ? exercisesByName.get(key) : null;
+    if (existingExercise) {
+      importIdMap.set(importedExercise.id, existingExercise.id);
+      return;
+    }
+
+    const exercise = {
+      ...importedExercise,
+      id: uniqueExerciseId(importedExercise.id, existingIds),
+    };
+    existingIds.add(exercise.id);
+    if (key) {
+      exercisesByName.set(key, exercise);
+    }
+    importIdMap.set(importedExercise.id, exercise.id);
+    library.push(exercise);
+    added += 1;
+  });
+
+  return { added, importIdMap, library, localIdMap };
+}
+
+function overwriteImportedLibrary(importedLibrary) {
+  const importIdMap = new Map();
+  const localIdMap = new Map();
+  const importedByName = new Map();
+  const existingIds = new Set();
+  const library = [];
+
+  importedLibrary.forEach((importedExercise) => {
+    const key = mergeKeyForExerciseName(importedExercise.name);
+    const existingExercise = importedByName.get(key);
+    if (existingExercise) {
+      importIdMap.set(importedExercise.id, existingExercise.id);
+      return;
+    }
+
+    const exercise = {
+      ...importedExercise,
+      id: uniqueExerciseId(importedExercise.id, existingIds),
+    };
+    existingIds.add(exercise.id);
+    importedByName.set(key, exercise);
+    importIdMap.set(importedExercise.id, exercise.id);
+    library.push(exercise);
+  });
+
+  state.library.forEach((exercise) => {
+    const importedExercise = importedByName.get(mergeKeyForExerciseName(exercise.name));
+    localIdMap.set(exercise.id, importedExercise ? importedExercise.id : exercise.id);
+  });
+
+  return { added: library.length, importIdMap, library, localIdMap };
+}
+
+function snackImportKey(snack) {
+  return [snack.id, snack.at || "", snack.stack || "", snack.skipped ? "1" : "0"].join("|");
+}
+
+function remapHistoryEntries(history, idMap) {
+  return history.map((entry) => ({
+    dateKey: entry.dateKey,
+    snacks: entry.snacks.map((snack) => ({
+      ...snack,
+      id: idMap.get(snack.id) || snack.id,
+    })),
+  }));
+}
+
+function overwriteImportedHistory(importedHistory) {
+  return {
+    history: sortHistoryDescending(importedHistory),
+    addedDays: importedHistory.length,
+    addedSnacks: importedHistory.reduce((total, entry) => total + entry.snacks.length, 0),
+  };
+}
+
+function mergeImportedHistory(baseHistory, importedHistory) {
+  const entriesByDate = new Map(
+    baseHistory.map((entry) => [
+      entry.dateKey,
+      {
+        dateKey: entry.dateKey,
+        snacks: entry.snacks.map((snack) => ({ ...snack })),
+      },
+    ]),
+  );
+  let addedDays = 0;
+  let addedSnacks = 0;
+
+  importedHistory.forEach((importedEntry) => {
+    let entry = entriesByDate.get(importedEntry.dateKey);
+    if (!entry) {
+      entry = { dateKey: importedEntry.dateKey, snacks: [] };
+      entriesByDate.set(importedEntry.dateKey, entry);
+      addedDays += 1;
+    }
+
+    const existingSnackKeys = new Set(entry.snacks.map((snack) => snackImportKey(snack)));
+    importedEntry.snacks.forEach((snack) => {
+      const key = snackImportKey(snack);
+      if (existingSnackKeys.has(key)) {
+        return;
+      }
+
+      entry.snacks.push({ ...snack });
+      existingSnackKeys.add(key);
+      addedSnacks += 1;
+    });
+  });
+
+  return { history: sortHistoryDescending([...entriesByDate.values()]), addedDays, addedSnacks };
+}
+
 async function init() {
   attachChipHandlers();
   attachSizeHandlers();
@@ -1190,6 +1655,32 @@ async function init() {
   $("btn-skip").addEventListener("click", skipSnack);
   $("timer-quit").addEventListener("click", quitRun);
   $("add-snack-btn").addEventListener("click", addSnack);
+  $("export-json-btn").addEventListener("click", exportJson);
+  $("import-json-btn").addEventListener("click", () => {
+    $("import-json-input").click();
+  });
+  $("import-json-input").addEventListener("change", (event) => {
+    importJsonFile(event.target.files?.[0]).finally(() => {
+      event.target.value = "";
+    });
+  });
+  $("import-cancel-btn").addEventListener("click", closeImportDialog);
+  $("import-overlay-scrim").addEventListener("click", closeImportDialog);
+  $("import-confirm-btn").addEventListener("click", confirmImport);
+  document.querySelectorAll('input[name="import-history-mode"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        updateImportMode("history", input.value);
+      }
+    });
+  });
+  document.querySelectorAll('input[name="import-library-mode"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        updateImportMode("library", input.value);
+      }
+    });
+  });
   $("settings-close-btn").addEventListener("click", closeSnackEditor);
   $("settings-overlay-scrim").addEventListener("click", closeSnackEditor);
   $("settings-remove-btn").addEventListener("click", () => {
@@ -1236,6 +1727,12 @@ async function init() {
 
   $("archive-list").addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
+    const monthToggle = target ? target.closest(".archive-month-toggle") : null;
+    if (monthToggle && monthToggle.dataset.month) {
+      toggleArchiveMonth(monthToggle.dataset.month);
+      return;
+    }
+
     const row = target ? target.closest(".archive-row.has-snacks") : null;
     if (row && row.dataset.date) {
       showDay(row.dataset.date);
@@ -1277,6 +1774,12 @@ async function init() {
   });
 
   document.addEventListener("keydown", (event) => {
+    if (state.pendingImport && event.key === "Escape") {
+      event.preventDefault();
+      closeImportDialog();
+      return;
+    }
+
     if (state.editingIndex != null && event.key === "Escape") {
       event.preventDefault();
       closeSnackEditor();
