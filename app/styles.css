@@ -639,14 +639,41 @@ button {
 }
 
 .preview-item {
-  grid-template-columns: 34px 1fr;
-  align-items: baseline;
+  grid-template-columns: 34px 1fr 44px;
+  align-items: center;
+}
+
+.preview-retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 44px;
+  height: 44px;
+  color: var(--ink-light);
+}
+
+.preview-retry:hover {
+  color: var(--ink);
 }
 
 .preview-name-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 14px;
+  min-height: 33px;
+}
+
+.day-bar-slot {
+  position: relative;
+  width: 4px;
+  height: 27px;
+  flex-shrink: 0;
+}
+
+.day-bar-slot .day-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
 }
 
 .idx {
@@ -702,7 +729,16 @@ button {
 }
 
 .btn-begin {
-  font-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 44px;
+  height: 44px;
+  color: var(--ink-light);
+}
+
+.btn-begin:hover {
+  color: var(--ink);
 }
 
 .settings-filters {
@@ -1513,7 +1549,7 @@ body.settings-overlay-open {
 
 @media (max-width: 560px) {
   .preview-item {
-    grid-template-columns: 28px 1fr;
+    grid-template-columns: 28px 1fr 44px;
   }
 
   .duration {

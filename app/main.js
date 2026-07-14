@@ -516,17 +516,45 @@ function renderPreview() {
           <span class="idx">${String(index + 1).padStart(2, "0")}</span>
           <div class="body">
             <div class="preview-name-row">
-              <span class="day-bar cat-${esc(exercise.category)}" data-intensity="${exercise.intensity}"></span>
+              <span class="day-bar-slot">
+                <span class="day-bar cat-${esc(exercise.category)}" data-intensity="${exercise.intensity}"></span>
+              </span>
               <p class="name">${esc(exercise.name)}</p>
             </div>
             <div class="meta">
               <span class="cue">${esc(exercise.tagline)}</span>
             </div>
           </div>
+          <button class="preview-retry" data-action="retry-preview" data-index="${index}" type="button" aria-label="retry exercise ${index + 1}">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+          </button>
         </article>
       `,
     )
     .join("");
+}
+
+function retryPreviewExercise(index) {
+  const currentExercise = state.stack[index];
+  if (!currentExercise) return;
+
+  const pool = filterExercises(state.library, state.filters);
+  const usedIds = new Set(state.stack.map((exercise) => exercise.id));
+  const unusedCandidates = pool.filter((exercise) => !usedIds.has(exercise.id));
+  const candidates = unusedCandidates.length
+    ? unusedCandidates
+    : pool.filter((exercise) => exercise.id !== currentExercise.id);
+
+  if (candidates.length === 0) {
+    toast("no other snacks match those filters");
+    return;
+  }
+
+  state.stack[index] = pickStack(candidates, 1)[0];
+  renderPreview();
 }
 
 function renderFilterSection(targetId, scope, filters) {
@@ -1655,6 +1683,12 @@ async function init() {
     });
   });
   $("begin-btn").addEventListener("click", beginRun);
+  $("preview-list").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const retryButton = target?.closest('[data-action="retry-preview"]');
+    if (!(retryButton instanceof HTMLButtonElement)) return;
+    retryPreviewExercise(Number(retryButton.dataset.index));
+  });
   $("btn-prev").addEventListener("click", prevSnack);
   $("btn-pause").addEventListener("click", togglePause);
   $("rest-btn-pause").addEventListener("click", togglePause);
