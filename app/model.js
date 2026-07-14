@@ -12,7 +12,7 @@ export const INTENSITY_LABELS = {
 export const DEFAULT_FILTERS = {
   size: 3,
   intensity: "any",
-  category: "any",
+  categories: [...CATEGORY_ORDER],
 };
 
 export const SNACK_DURATION = 60;
@@ -235,7 +235,7 @@ export function filterExercises(library, filters) {
   return library.filter((exercise) => {
     if (exercise.deleted) return false;
     const isEnabled = exercise.enabled !== false;
-    const matchesCategory = filters.category === "any" || exercise.category === filters.category;
+    const matchesCategory = filters.categories.includes(exercise.category);
     const matchesIntensity = filters.intensity === "any" || exercise.intensity === Number(filters.intensity);
     return isEnabled && matchesCategory && matchesIntensity;
   });
@@ -320,7 +320,8 @@ export function formatSizeLabel(size) {
 }
 
 export function describeFilters(filters) {
-  const flavour = filters.category === "any" ? "any flavour" : filters.category;
+  const flavour =
+    filters.categories.length === CATEGORY_ORDER.length ? "all flavours" : filters.categories.join(" + ");
   const heat = filters.intensity === "any" ? "any heat" : `${INTENSITY_LABELS[filters.intensity]} heat`;
   return `${flavour} / ${heat}`;
 }

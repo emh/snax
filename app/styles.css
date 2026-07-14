@@ -472,6 +472,10 @@ button {
   justify-self: end;
 }
 
+.more-link svg {
+  display: block;
+}
+
 .chip.active,
 .more-link:hover {
   color: var(--ink);

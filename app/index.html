@@ -86,32 +86,14 @@
               <button class="size-bubble" data-action="shake-size" data-size="3" type="button" aria-label="triple">3</button>
               <button class="size-bubble" data-action="shake-size" data-size="5" type="button" aria-label="high five">5</button>
             </div>
-            <button class="more-link" id="more-toggle" type="button" aria-expanded="false">filter...</button>
+            <button class="more-link" id="more-toggle" type="button" aria-expanded="false" aria-label="filter snacks">
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path>
+              </svg>
+            </button>
           </div>
 
-          <div class="advanced" id="advanced">
-            <div class="chip-row">
-              <span class="row-label">Heat</span>
-              <div class="chips">
-                <button class="chip active" data-group="intensity" data-val="any" type="button">any</button>
-                <button class="chip" data-group="intensity" data-val="1" type="button">easy</button>
-                <button class="chip" data-group="intensity" data-val="2" type="button">medium</button>
-                <button class="chip" data-group="intensity" data-val="3" type="button">hard</button>
-              </div>
-            </div>
-
-            <div class="chip-row">
-              <span class="row-label">Flavour</span>
-              <div class="chips">
-                <button class="chip active" data-group="category" data-val="any" type="button">any</button>
-                <button class="chip" data-group="category" data-val="cardio" type="button">cardio</button>
-                <button class="chip" data-group="category" data-val="strength" type="button">strength</button>
-                <button class="chip" data-group="category" data-val="core" type="button">core</button>
-                <button class="chip" data-group="category" data-val="mobility" type="button">mobility</button>
-                <button class="chip" data-group="category" data-val="restore" type="button">restore</button>
-              </div>
-            </div>
-          </div>
+          <div class="advanced" id="advanced"></div>
         </section>
 
         <section class="archive" id="archive-section">
@@ -225,27 +207,7 @@
         </div>
 
         <div class="settings-filters">
-          <div class="chip-row settings-chip-row">
-            <span class="row-label">Flavour</span>
-            <div class="chips">
-              <button class="chip settings-chip active" data-settings-group="category" data-val="any" type="button">any</button>
-              <button class="chip settings-chip" data-settings-group="category" data-val="cardio" type="button">cardio</button>
-              <button class="chip settings-chip" data-settings-group="category" data-val="strength" type="button">strength</button>
-              <button class="chip settings-chip" data-settings-group="category" data-val="core" type="button">core</button>
-              <button class="chip settings-chip" data-settings-group="category" data-val="mobility" type="button">mobility</button>
-              <button class="chip settings-chip" data-settings-group="category" data-val="restore" type="button">restore</button>
-            </div>
-          </div>
-
-          <div class="chip-row settings-chip-row">
-            <span class="row-label">Heat</span>
-            <div class="chips">
-              <button class="chip settings-chip active" data-settings-group="intensity" data-val="any" type="button">any</button>
-              <button class="chip settings-chip" data-settings-group="intensity" data-val="1" type="button">easy</button>
-              <button class="chip settings-chip" data-settings-group="intensity" data-val="2" type="button">medium</button>
-              <button class="chip settings-chip" data-settings-group="intensity" data-val="3" type="button">hard</button>
-            </div>
-          </div>
+          <div id="library-filter-section"></div>
 
           <label class="settings-field settings-search-field">
             <span class="settings-label">Filter</span>

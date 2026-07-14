@@ -34,7 +34,7 @@ const state = {
   settings: loadSettings(),
   filters: { ...DEFAULT_FILTERS },
   settingsFilters: {
-    category: "any",
+    categories: [...CATEGORY_ORDER],
     intensity: "any",
     query: "",
   },
@@ -70,7 +70,6 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
-const CATEGORY_COLOR_CLASSES = CATEGORY_ORDER.map((category) => `cat-${category}`);
 const EXPORT_SCHEMA = "snax.history.v1";
 const TIMER_WAKE_LOCK_TYPE = "screen";
 
@@ -530,30 +529,42 @@ function renderPreview() {
     .join("");
 }
 
-function renderSettingsFilterChips() {
-  document.querySelectorAll(".settings-chip").forEach((chip) => {
-    const group = chip.dataset.settingsGroup;
-    const rawValue = chip.dataset.val;
-    if (!group || !rawValue) {
-      return;
-    }
+function renderFilterSection(targetId, scope, filters) {
+  const heatOptions = [
+    ["any", "any"],
+    ["1", "easy"],
+    ["2", "medium"],
+    ["3", "hard"],
+  ];
+  const heatChips = heatOptions
+    .map(([value, label]) => {
+      const isActive = filters.intensity === value;
+      return `<button class="chip ${isActive ? "active" : ""}" data-filter-scope="${scope}" data-filter-group="intensity" data-val="${value}" type="button" aria-pressed="${isActive}">${label}</button>`;
+    })
+    .join("");
+  const flavourChips = CATEGORY_ORDER.map((category) => {
+    const isActive = filters.categories.includes(category);
+    return `<button class="chip ${isActive ? `active cat-${category}` : ""}" data-filter-scope="${scope}" data-filter-group="category" data-val="${category}" type="button" aria-pressed="${isActive}">${category}</button>`;
+  }).join("");
 
-    const isActive = state.settingsFilters[group] === rawValue;
-    chip.classList.toggle("active", isActive);
-    chip.classList.remove(...CATEGORY_COLOR_CLASSES);
-
-    if (isActive && group === "category" && rawValue !== "any") {
-      chip.classList.add(`cat-${rawValue}`);
-    }
-  });
+  $(targetId).innerHTML = `
+    <div class="chip-row ${scope === "library" ? "settings-chip-row" : ""}">
+      <span class="row-label">Heat</span>
+      <div class="chips">${heatChips}</div>
+    </div>
+    <div class="chip-row ${scope === "library" ? "settings-chip-row" : ""}">
+      <span class="row-label">Flavour</span>
+      <div class="chips">${flavourChips}</div>
+    </div>
+  `;
 }
 
 function renderSettings() {
-  renderSettingsFilterChips();
+  renderFilterSection("library-filter-section", "library", state.settingsFilters);
   const visibleSnacks = getVisibleLibrarySnacks();
   const visibleEnabledCount = visibleSnacks.filter(({ exercise }) => exercise.enabled !== false).length;
   const hasActiveFilters =
-    state.settingsFilters.category !== "any" ||
+    state.settingsFilters.categories.length !== CATEGORY_ORDER.length ||
     state.settingsFilters.intensity !== "any" ||
     state.settingsFilters.query.trim().length > 0;
 
@@ -608,8 +619,7 @@ function getVisibleLibrarySnacks() {
 
   return state.library.map((exercise, index) => ({ exercise, index })).filter(({ exercise }) => {
     if (exercise.deleted) return false;
-    const matchesCategory =
-      state.settingsFilters.category === "any" || exercise.category === state.settingsFilters.category;
+    const matchesCategory = state.settingsFilters.categories.includes(exercise.category);
     const matchesIntensity =
       state.settingsFilters.intensity === "any" || exercise.intensity === Number(state.settingsFilters.intensity);
     const matchesQuery = !query || exercise.name.toLowerCase().includes(query);
@@ -1078,25 +1088,29 @@ function formatStackLabel(size) {
 }
 
 function attachChipHandlers() {
-  document.querySelectorAll(".chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      const group = chip.dataset.group;
-      const rawValue = chip.dataset.val;
-      if (!group || !rawValue) {
-        return;
-      }
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const chip = target?.closest("[data-filter-scope]");
+    if (!(chip instanceof HTMLButtonElement)) return;
 
-      state.filters[group] = group === "size" ? Number(rawValue) : rawValue;
+    const filters = chip.dataset.filterScope === "library" ? state.settingsFilters : state.filters;
+    const group = chip.dataset.filterGroup;
+    const rawValue = chip.dataset.val;
+    if (!group || !rawValue) return;
 
-      document.querySelectorAll(`.chip[data-group="${group}"]`).forEach((other) => {
-        other.classList.remove("active", ...CATEGORY_COLOR_CLASSES);
-      });
+    if (group === "category") {
+      filters.categories = filters.categories.includes(rawValue)
+        ? filters.categories.filter((category) => category !== rawValue)
+        : [...filters.categories, rawValue];
+    } else {
+      filters.intensity = rawValue;
+    }
 
-      chip.classList.add("active");
-      if (group === "category" && rawValue !== "any") {
-        chip.classList.add(`cat-${rawValue}`);
-      }
-    });
+    if (chip.dataset.filterScope === "library") {
+      renderSettings();
+    } else {
+      renderFilterSection("advanced", "main", state.filters);
+    }
   });
 }
 
@@ -1112,15 +1126,6 @@ function attachSizeHandlers() {
       shakeJar();
     });
   });
-}
-
-function updateSettingsFilter(group, rawValue) {
-  if (!group || !rawValue) {
-    return;
-  }
-
-  state.settingsFilters[group] = rawValue;
-  renderSettings();
 }
 
 function openSnackEditor(index) {
@@ -1181,8 +1186,8 @@ function setVisibleSnacksEnabled(enabled) {
 
 function addSnack() {
   const exercise = createEmptyExercise();
-  if (state.settingsFilters.category !== "any") {
-    exercise.category = state.settingsFilters.category;
+  if (state.settingsFilters.categories.length === 1) {
+    exercise.category = state.settingsFilters.categories[0];
   }
   if (state.settingsFilters.intensity !== "any") {
     exercise.intensity = Number(state.settingsFilters.intensity);
@@ -1610,6 +1615,7 @@ function mergeImportedHistory(baseHistory, importedHistory) {
 }
 
 async function init() {
+  renderFilterSection("advanced", "main", state.filters);
   attachChipHandlers();
   attachSizeHandlers();
   renderHome();
@@ -1737,16 +1743,6 @@ async function init() {
     if (row && row.dataset.date) {
       showDay(row.dataset.date);
     }
-  });
-
-  document.querySelector(".settings-filters").addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target : null;
-    const chip = target ? target.closest(".settings-chip") : null;
-    if (!chip) {
-      return;
-    }
-
-    updateSettingsFilter(chip.dataset.settingsGroup, chip.dataset.val);
   });
 
   $("settings-list").addEventListener("click", (event) => {
