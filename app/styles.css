@@ -14,8 +14,8 @@
   --mobility: #009e73;
   --restore: #9a7a00;
   --shadow: 0 20px 60px rgba(40, 30, 20, 0.08);
-  --font-serif: "Crimson Pro", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --font-mono: "SF Mono", "Menlo", "Consolas", monospace;
+  --font-main: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono", "SF Mono", "Menlo", monospace;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -41,7 +41,7 @@ body {
     radial-gradient(circle at top left, rgba(143, 29, 18, 0.06), transparent 30%),
     radial-gradient(circle at bottom right, rgba(62, 96, 124, 0.05), transparent 32%),
     linear-gradient(180deg, #fffefb 0%, var(--paper) 55%, var(--paper-shade) 100%);
-  font-family: var(--font-serif);
+  font-family: var(--font-main);
 }
 
 button {
@@ -584,7 +584,7 @@ body.cancel-sheet-open {
     0 10px 24px rgba(40, 30, 20, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.38);
   color: var(--ink);
-  font-family: var(--font-serif);
+  font-family: var(--font-main);
   font-size: 22px;
   font-weight: 300;
   font-style: italic;
@@ -1117,7 +1117,7 @@ body.cancel-sheet-open {
 }
 
 .settings-search-input {
-  font-family: var(--font-serif);
+  font-family: var(--font-main);
   font-size: 20px;
 }
 
@@ -1444,7 +1444,7 @@ body.cancel-sheet-open {
 }
 
 .settings-input {
-  font-family: var(--font-serif);
+  font-family: var(--font-main);
   font-size: 19px;
 }
 
