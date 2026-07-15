@@ -2030,3 +2030,14 @@ body.settings-overlay-open {
     scroll-behavior: auto !important;
   }
 }
+
+/* WebKit reports dvh minus the safe-area insets on initial standalone loads. */
+@media (display-mode: standalone) {
+  html,
+  body,
+  .app-shell,
+  .view-run,
+  .view-rest {
+    min-height: 100vh;
+  }
+}
