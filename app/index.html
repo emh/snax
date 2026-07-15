@@ -71,6 +71,9 @@
                 <path d="M19 12H5"></path>
               </svg>
             </button>
+            <button class="dev-complete-btn timer-icon-btn" data-action="dev-complete-workout" type="button" aria-label="record workout complete" hidden>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
             <h2 class="preview-title" id="preview-title">triple</h2>
             <p class="preview-sub" id="preview-sub">any flavour / any heat</p>
           </div>
@@ -80,6 +83,18 @@
           <div class="chip-row preview-rounds">
             <span>rounds</span>
             <div class="chips" id="preview-rounds-options" aria-label="rounds"></div>
+          </div>
+
+          <div class="preview-timer">
+            <p class="preview-option-heading">timer</p>
+            <div class="chip-row">
+              <span>work</span>
+              <div class="chips" id="preview-work-options" aria-label="work timer"></div>
+            </div>
+            <div class="chip-row">
+              <span>rest</span>
+              <div class="chips" id="preview-rest-options" aria-label="rest timer"></div>
+            </div>
           </div>
 
           <div class="preview-actions">
@@ -97,9 +112,14 @@
             <span class="timer-round" id="timer-round" hidden>round 1 / 1</span>
             <span class="timer-step" id="timer-step">snack 1 / 3</span>
           </div>
-          <button class="timer-quit timer-icon-btn" id="timer-quit" type="button" aria-label="cancel workout">
-            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-          </button>
+          <div class="timer-top-actions">
+            <button class="dev-complete-btn timer-icon-btn" data-action="dev-complete-workout" type="button" aria-label="record workout complete" hidden>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
+            <button class="timer-quit timer-icon-btn" id="timer-quit" type="button" aria-label="cancel workout">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+            </button>
+          </div>
         </div>
 
         <div class="timer-stage">
@@ -130,9 +150,14 @@
 
       <section id="view-rest" class="view view-rest">
         <div class="rest-topbar">
-          <button class="timer-quit timer-icon-btn" id="rest-cancel" type="button" aria-label="cancel workout">
-            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-          </button>
+          <div class="timer-top-actions">
+            <button class="dev-complete-btn timer-icon-btn" data-action="dev-complete-workout" type="button" aria-label="record workout complete" hidden>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
+            <button class="timer-quit timer-icon-btn" id="rest-cancel" type="button" aria-label="cancel workout">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+            </button>
+          </div>
         </div>
         <div class="rest-stage">
           <p class="rest-label">rest / breathe</p>
@@ -161,13 +186,12 @@
         </div>
 
         <div class="done-wrap">
-          <p class="done-label">well done<span class="done-dot"> .</span></p>
-          <h2 class="done-title" id="done-title">three complete</h2>
+          <h2 class="done-title" id="done-title">workout complete</h2>
+          <p class="done-stats" id="done-stats"></p>
 
           <div class="done-summary">
             <div class="done-spark" id="done-spark"></div>
             <div class="done-list" id="done-list"></div>
-            <p class="done-stats" id="done-stats"></p>
           </div>
         </div>
       </section>

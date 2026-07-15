@@ -27,7 +27,14 @@ function normalizeHistory(history) {
         const id = String(snack.stack || snack.at || `legacy-${legacyWorkouts.length}`);
         let workout = legacyWorkouts.find((item) => item.id === id);
         if (!workout) {
-          workout = { id, at: snack.at, rounds: Math.max(1, Math.min(5, Number(entry.snacks?.find((item) => item?.stack === snack.stack)?.rounds) || 1)), exercises: [] };
+          workout = {
+            id,
+            at: snack.at,
+            rounds: Math.max(1, Math.min(5, Number(entry.snacks?.find((item) => item?.stack === snack.stack)?.rounds) || 1)),
+            workDuration: 60,
+            restDuration: 10,
+            exercises: [],
+          };
           legacyWorkouts.push(workout);
         }
         const { stack, ...exercise } = snack;

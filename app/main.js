@@ -3,6 +3,8 @@ import {
   DEFAULT_FILTERS,
   REST_DURATION,
   SNACK_DURATION,
+  REST_DURATIONS,
+  WORK_DURATIONS,
   createEmptyExercise,
   describeFilters,
   ensureHistoryEntry,
@@ -43,6 +45,8 @@ const state = {
   baseStack: [],
   stack: [],
   rounds: 1,
+  workDuration: SNACK_DURATION,
+  restDuration: REST_DURATION,
   runIdx: 0,
   secondsLeft: SNACK_DURATION,
   snackEndTime: 0,
@@ -298,7 +302,14 @@ function todayEntry() {
 
 function resolveEntrySnacks(entry) {
   return entry
-    ? resolveSnacks(entry.workouts.flatMap((workout) => workout.exercises), state.library).filter((snack) => !snack.skipped)
+    ? entry.workouts
+        .flatMap((workout) =>
+          resolveSnacks(workout.exercises, state.library).map((exercise) => ({
+            ...exercise,
+            workDuration: workout.workDuration,
+          })),
+        )
+        .filter((snack) => !snack.skipped)
     : [];
 }
 
@@ -306,7 +317,9 @@ function resolveEntryWorkouts(entry) {
   return (entry?.workouts || [])
     .map((workout) => ({
       ...workout,
-      exercises: resolveSnacks(workout.exercises, state.library).filter((exercise) => !exercise.skipped),
+      exercises: resolveSnacks(workout.exercises, state.library)
+        .filter((exercise) => !exercise.skipped)
+        .map((exercise) => ({ ...exercise, workDuration: workout.workDuration })),
     }))
     .filter((workout) => workout.exercises.length > 0);
 }
@@ -323,6 +336,21 @@ function renderSparkBars(snacks, variant, emptyLabel, animate = true) {
         `<span class="spark-bar spark-bar-${variant} cat-${esc(snack.category)}${animate ? "" : " spark-bar-static"}" style="height: ${8 + snack.intensity * unit}px; animation-delay: ${index * 0.04}s"></span>`,
     )
     .join("");
+}
+
+function updateSparkOverflow(container) {
+  const tolerance = 1;
+  container.classList.toggle("spark-overflow-left", container.scrollLeft > tolerance);
+  container.classList.toggle(
+    "spark-overflow-right",
+    container.scrollLeft + container.clientWidth < container.scrollWidth - tolerance,
+  );
+}
+
+function scheduleSparkOverflowUpdate() {
+  window.requestAnimationFrame(() => {
+    document.querySelectorAll(".today-spark, .archive-spark, .done-spark").forEach(updateSparkOverflow);
+  });
 }
 
 function renderIntensityPips(intensity, category) {
@@ -415,6 +443,7 @@ function renderToday() {
   $("today-meta").textContent = formatMetaText(snacks);
   $("today-spark").innerHTML = renderSparkBars(snacks, "today", "quiet so far");
   $("today-sessions").innerHTML = renderSessionGroups(resolveEntryWorkouts(entry));
+  scheduleSparkOverflowUpdate();
 }
 
 function renderSessionGroups(workouts) {
@@ -436,7 +465,7 @@ function renderSessionGroups(workouts) {
                 `,
               )
               .join("")}
-            ${workout.rounds > 1 ? `<div class="day-group-rounds">${workout.rounds} rounds</div>` : ""}
+            <div class="day-group-stats">${workout.rounds > 1 ? `${workout.rounds} rounds / ` : ""}${workout.workDuration}s work / ${workout.restDuration}s rest / load ${getLoad(workout.exercises)}</div>
           </div>
         </div>
       `;
@@ -518,6 +547,7 @@ function renderHistory() {
   groups
     .filter((group) => state.expandedHistoryMonths.has(group.monthKey))
     .forEach((group) => group.entries.forEach((entry) => state.animatedHistoryDays.add(entry.dateKey)));
+  scheduleSparkOverflowUpdate();
 }
 
 function toggleHistoryMonth(monthKey) {
@@ -619,6 +649,8 @@ function shakeJar() {
   state.baseStack = pickStack(pool, state.filters.size);
   state.stack = [...state.baseStack];
   state.rounds = 1;
+  state.workDuration = SNACK_DURATION;
+  state.restDuration = REST_DURATION;
   renderPreview();
   showView("preview");
 }
@@ -636,6 +668,8 @@ function renderPreview() {
         `<button class="chip ${state.rounds === rounds ? "active" : ""}" data-rounds="${rounds}" type="button" aria-pressed="${state.rounds === rounds}">${rounds}</button>`,
     )
     .join("");
+  renderDurationOptions("preview-work-options", WORK_DURATIONS, state.workDuration, "work-duration");
+  renderDurationOptions("preview-rest-options", REST_DURATIONS, state.restDuration, "rest-duration");
   $("preview-list").innerHTML = state.baseStack
     .map(
       (exercise, index) => `
@@ -660,6 +694,15 @@ function renderPreview() {
           </button>
         </article>
       `,
+    )
+    .join("");
+}
+
+function renderDurationOptions(targetId, durations, selected, dataName) {
+  $(targetId).innerHTML = durations
+    .map(
+      (duration) =>
+        `<button class="chip ${selected === duration ? "active" : ""}" data-${dataName}="${duration}" type="button" aria-pressed="${selected === duration}">${duration}</button>`,
     )
     .join("");
 }
@@ -689,6 +732,14 @@ function retryPreviewExercise(index) {
 function setWorkoutRounds(rounds) {
   if (!Number.isInteger(rounds) || rounds < 1 || rounds > 5) return;
   state.rounds = rounds;
+  renderPreview();
+}
+
+function setWorkoutDuration(kind, duration) {
+  const durations = kind === "work" ? WORK_DURATIONS : REST_DURATIONS;
+  if (!durations.includes(duration)) return;
+  if (kind === "work") state.workDuration = duration;
+  else state.restDuration = duration;
   renderPreview();
 }
 
@@ -973,6 +1024,8 @@ function runSingleSnack(index) {
   state.baseStack = [exercise];
   state.stack = [...state.baseStack];
   state.rounds = 1;
+  state.workDuration = SNACK_DURATION;
+  state.restDuration = REST_DURATION;
   beginRun();
 }
 
@@ -1012,8 +1065,8 @@ function startSnack() {
   renderTimerStack("timer-stack");
   $("timer-fill").className = `timer-progress-fill cat-${snack.category}`;
 
-  state.secondsLeft = SNACK_DURATION;
-  state.snackEndTime = Date.now() + SNACK_DURATION * 1000;
+  state.secondsLeft = state.workDuration;
+  state.snackEndTime = Date.now() + state.workDuration * 1000;
   state.paused = false;
   renderPauseButtons();
 
@@ -1035,7 +1088,7 @@ function tickSnack() {
 
 function updateTimerDisplay() {
   $("timer-seconds").innerHTML = `${formatTimerSeconds(state.secondsLeft)}<span class="s">s</span>`;
-  $("timer-fill").style.transform = `scaleX(${state.secondsLeft / SNACK_DURATION})`;
+  $("timer-fill").style.transform = `scaleX(${state.secondsLeft / state.workDuration})`;
 }
 
 function completeCurrentSnack(skipped) {
@@ -1058,12 +1111,17 @@ function completeCurrentSnack(skipped) {
 
 function startRest() {
   clearInterval(state.restHandle);
+  if (state.restDuration === 0) {
+    showView("run");
+    startSnack();
+    return;
+  }
   showView("rest");
 
-  state.restEndTime = Date.now() + REST_DURATION * 1000;
+  state.restEndTime = Date.now() + state.restDuration * 1000;
   const beeped = new Set();
 
-  $("rest-seconds").textContent = String(REST_DURATION);
+  $("rest-seconds").textContent = String(state.restDuration);
   $("rest-fill").style.transform = "scaleX(0)";
   renderTimerStack("rest-stack");
 
@@ -1071,7 +1129,7 @@ function startRest() {
     if (state.paused) return;
     const seconds = Math.max(0, Math.round((state.restEndTime - Date.now()) / 1000));
     $("rest-seconds").textContent = String(seconds);
-    $("rest-fill").style.transform = `scaleX(${1 - seconds / REST_DURATION})`;
+    $("rest-fill").style.transform = `scaleX(${1 - seconds / state.restDuration})`;
 
     if (!beeped.has(seconds)) {
       beeped.add(seconds);
@@ -1113,6 +1171,8 @@ function finishRun() {
     id: state.currentStackId,
     at: state.completed[0]?.at || new Date().toISOString(),
     rounds: state.rounds,
+    workDuration: state.workDuration,
+    restDuration: state.restDuration,
     exercises: state.completed.map((exercise) => ({ ...exercise })),
   });
   save();
@@ -1120,11 +1180,33 @@ function finishRun() {
   showView("done");
 }
 
+function completeWorkoutForDev() {
+  clearInterval(state.timerHandle);
+  clearInterval(state.restHandle);
+  rebuildWorkoutStack();
+  state.currentStackId ||= `r-${Date.now()}`;
+  const completedAt = Date.now();
+  state.completed = state.stack.map((exercise, index) => ({
+    id: exercise.id,
+    at: new Date(completedAt + index).toISOString(),
+    skipped: false,
+  }));
+  finishRun();
+}
+
 function renderDone() {
   const completed = resolveSnacks(state.completed, state.library).filter((snack) => !snack.skipped);
-  $("done-title").textContent = `${formatSizeLabel(completed.length)} complete`;
+  const completedExercises = resolveSnacks(
+    state.baseStack.filter((exercise, index) =>
+      Array.from({ length: state.rounds }, (_, round) => state.completed[round * state.baseStack.length + index]).some(
+        (completion) => completion && !completion.skipped,
+      ),
+    ),
+    state.library,
+  );
+  $("done-title").textContent = "workout complete";
   $("done-spark").innerHTML = renderSparkBars(completed, "done", "");
-  $("done-list").innerHTML = completed
+  $("done-list").innerHTML = completedExercises
     .map(
       (snack, index) => `
         <div class="done-list-item">
@@ -1134,7 +1216,8 @@ function renderDone() {
       `,
     )
     .join("");
-  $("done-stats").textContent = `load ${getLoad(completed)}`;
+  $("done-stats").textContent = `${state.rounds} round${state.rounds === 1 ? "" : "s"} / ${state.workDuration}s work / ${state.restDuration}s rest / load ${getLoad(completed, state.workDuration)}`;
+  scheduleSparkOverflowUpdate();
 }
 
 function togglePause() {
@@ -1605,6 +1688,8 @@ function legacySnacksToWorkouts(snacks) {
         id,
         at: source?.at ? String(source.at) : null,
         rounds: Math.max(1, Math.min(5, Number(source?.rounds) || 1)),
+        workDuration: SNACK_DURATION,
+        restDuration: REST_DURATION,
         exercises: [],
       };
       workouts.push(workout);
@@ -1980,6 +2065,8 @@ function populateRandomHistory() {
           id: stack,
           at,
           rounds: 1,
+          workDuration: SNACK_DURATION,
+          restDuration: REST_DURATION,
           exercises: exercises.map((exercise) => ({
             id: exercise.id,
             at,
@@ -2008,10 +2095,25 @@ window.snaxDev = {
 };
 
 async function init() {
+  const isDevHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  document.querySelectorAll('[data-action="dev-complete-workout"]').forEach((button) => {
+    button.hidden = !isDevHost;
+    button.addEventListener("click", completeWorkoutForDev);
+  });
   attachChipHandlers();
   attachSizeHandlers();
   renderHome();
   document.addEventListener("visibilitychange", handleVisibilityChange);
+  document.addEventListener(
+    "scroll",
+    (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const container = target?.closest(".today-spark, .archive-spark, .done-spark");
+      if (container) updateSparkOverflow(container);
+    },
+    true,
+  );
+  window.addEventListener("resize", scheduleSparkOverflowUpdate);
 
   $("link-btn").addEventListener("click", () => {
     toggleLinkPanel().catch((error) => {
@@ -2058,6 +2160,14 @@ async function init() {
     const button = target?.closest("[data-rounds]");
     if (!(button instanceof HTMLButtonElement)) return;
     setWorkoutRounds(Number(button.dataset.rounds));
+  });
+  $("preview-work-options").addEventListener("click", (event) => {
+    const button = (event.target instanceof Element ? event.target : null)?.closest("[data-work-duration]");
+    if (button instanceof HTMLButtonElement) setWorkoutDuration("work", Number(button.dataset.workDuration));
+  });
+  $("preview-rest-options").addEventListener("click", (event) => {
+    const button = (event.target instanceof Element ? event.target : null)?.closest("[data-rest-duration]");
+    if (button instanceof HTMLButtonElement) setWorkoutDuration("rest", Number(button.dataset.restDuration));
   });
   $("btn-pause").addEventListener("click", togglePause);
   $("rest-btn-pause").addEventListener("click", togglePause);

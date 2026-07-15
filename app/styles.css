@@ -310,6 +310,12 @@ body.cancel-sheet-open {
   border-top: 1px solid var(--rule);
 }
 
+.done-stats {
+  margin: 10px 0 0;
+  color: var(--ink-mid);
+  font-size: 10.5px;
+}
+
 .link-helper,
 .link-url-box {
   margin: 0;
@@ -468,6 +474,32 @@ body.cancel-sheet-open {
   display: flex;
   align-items: flex-end;
   gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.today-spark::-webkit-scrollbar,
+.archive-spark::-webkit-scrollbar,
+.done-spark::-webkit-scrollbar {
+  display: none;
+}
+
+.spark-overflow-right {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+}
+
+.spark-overflow-left {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 100%);
+}
+
+.spark-overflow-left.spark-overflow-right {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
 }
 
 .today-spark {
@@ -489,7 +521,7 @@ body.cancel-sheet-open {
 }
 
 .done-spark {
-  justify-content: center;
+  justify-content: safe center;
   min-height: 42px;
 }
 
@@ -501,6 +533,7 @@ body.cancel-sheet-open {
 
 .spark-bar {
   display: inline-block;
+  flex: 0 0 auto;
   width: 6px;
   animation: bar-rise 420ms var(--ease) both;
 }
@@ -716,13 +749,17 @@ body.cancel-sheet-open {
 
 .history-day-toggle {
   display: grid;
-  grid-template-columns: 18px 78px minmax(80px, 1fr) auto;
+  grid-template-columns: 10px 78px minmax(80px, 1fr) auto;
   align-items: end;
   width: 100%;
-  gap: 12px;
+  gap: 8px;
   padding: 16px 0;
   color: inherit;
   text-align: left;
+}
+
+.archive-date {
+  white-space: nowrap;
 }
 
 .history-day-toggle::before {
@@ -755,7 +792,14 @@ body.cancel-sheet-open {
 }
 
 .preview-header {
+  position: relative;
   padding-top: calc(34px + var(--safe-top));
+}
+
+.preview-header > .dev-complete-btn {
+  position: absolute;
+  top: calc(24px + var(--safe-top));
+  right: 0;
 }
 
 .back-btn,
@@ -833,6 +877,17 @@ body.cancel-sheet-open {
 
 .preview-rounds {
   margin-top: 22px;
+}
+
+.preview-timer {
+  margin-top: 22px;
+}
+
+.preview-option-heading {
+  margin: 0 0 12px;
+  color: var(--ink-mid);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
 }
 
 .preview-item,
@@ -1445,6 +1500,20 @@ body.settings-overlay-open {
   gap: 4px;
 }
 
+.timer-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.dev-complete-btn {
+  color: var(--ink-light);
+}
+
+.dev-complete-btn[hidden] {
+  display: none;
+}
+
 .timer-step,
 .timer-round,
 .timer-btn,
@@ -1641,18 +1710,6 @@ body.settings-overlay-open {
   padding-bottom: 0;
 }
 
-.done-label {
-  color: var(--ink-light);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.done-dot {
-  color: var(--red);
-}
-
 .done-summary {
   margin-top: 34px;
   padding: 24px 0;
@@ -1698,7 +1755,7 @@ body.settings-overlay-open {
   gap: 4px;
 }
 
-.day-group-rounds {
+.day-group-stats {
   margin-top: 8px;
   color: var(--ink-light);
   font-family: var(--font-mono);
@@ -1880,7 +1937,8 @@ body.settings-overlay-open {
   }
 
   .history-day-toggle {
-    grid-template-columns: 18px 62px minmax(56px, 1fr);
+    grid-template-columns: 10px 78px minmax(56px, 1fr);
+    column-gap: 8px;
     row-gap: 6px;
   }
 

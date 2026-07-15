@@ -17,6 +17,8 @@ export const DEFAULT_FILTERS = {
 
 export const SNACK_DURATION = 60;
 export const REST_DURATION = 10;
+export const WORK_DURATIONS = [20, 40, 60, 120, 300];
+export const REST_DURATIONS = [0, 10, 20, 40, 60];
 
 const DEFAULT_LIBRARY = [
   { id: "squats", name: "squats", tagline: "hips back, chest proud", category: "strength", intensity: 2 },
@@ -166,6 +168,8 @@ export function hydrateWorkout(workout) {
     id: String(source.id || `r-${Date.now()}`),
     at: source.at ? String(source.at) : null,
     rounds: Math.max(1, Math.min(5, Number(source.rounds) || 1)),
+    workDuration: WORK_DURATIONS.includes(Number(source.workDuration)) ? Number(source.workDuration) : SNACK_DURATION,
+    restDuration: REST_DURATIONS.includes(Number(source.restDuration)) ? Number(source.restDuration) : REST_DURATION,
     exercises: Array.isArray(source.exercises) ? source.exercises.map((exercise) => hydrateSnack(exercise)) : [],
   };
 }
@@ -267,8 +271,12 @@ export function pickStack(pool, size) {
   return selected;
 }
 
-export function getLoad(snacks) {
-  return snacks.reduce((total, snack) => total + snack.intensity, 0);
+export function getLoad(snacks, defaultWorkDuration = SNACK_DURATION) {
+  const load = snacks.reduce(
+    (total, snack) => total + snack.intensity * ((Number(snack.workDuration) || defaultWorkDuration) / SNACK_DURATION),
+    0,
+  );
+  return Math.round(load * 10) / 10;
 }
 
 export function formatLongDate(dateKey) {
