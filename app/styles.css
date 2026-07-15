@@ -118,6 +118,7 @@ button {
 .filter-sheet { z-index: 50; }
 .link-sheet { z-index: 60; }
 .admin-sheet { z-index: 60; }
+.workout-setup-sheet { z-index: 70; }
 .cancel-sheet { z-index: 80; }
 
 .bottom-sheet[hidden] {
@@ -194,6 +195,7 @@ button {
 body.filter-sheet-open,
 body.link-sheet-open,
 body.admin-sheet-open,
+body.workout-setup-sheet-open,
 body.cancel-sheet-open {
   overflow: hidden;
 }
@@ -875,12 +877,15 @@ body.cancel-sheet-open {
   margin-top: 28px;
 }
 
-.preview-rounds {
+.preview-timer {
   margin-top: 22px;
 }
 
-.preview-timer {
-  margin-top: 22px;
+.preview-workout-stats {
+  margin: 18px 0 0;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
 }
 
 .preview-option-heading {
@@ -989,6 +994,7 @@ body.cancel-sheet-open {
   display: flex;
   align-items: baseline;
   justify-content: center;
+  gap: 30px;
   pointer-events: none;
 }
 
@@ -1087,6 +1093,25 @@ body.cancel-sheet-open {
 }
 
 .cancel-confirm:hover {
+  color: var(--red);
+}
+
+.workout-setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+.workout-setup-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--ink-light);
+}
+
+.workout-setup-confirm:hover {
   color: var(--red);
 }
 

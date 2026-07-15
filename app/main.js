@@ -67,6 +67,7 @@ const state = {
   adminPanelOpen: false,
   cancelPanelOpen: false,
   cancelWasPaused: false,
+  workoutSetup: null,
   linkBusy: false,
   linkError: "",
   linkCodeInput: "",
@@ -95,6 +96,7 @@ let linkPanelTimer = null;
 let adminPanelTimer = null;
 let editorPanelTimer = null;
 let cancelPanelTimer = null;
+let workoutSetupTimer = null;
 
 function initAudio() {
   if (!audioCtx) {
@@ -662,14 +664,7 @@ function rebuildWorkoutStack() {
 function renderPreview() {
   $("preview-title").textContent = formatStackLabel(state.baseStack.length);
   $("preview-sub").textContent = describeFilters(state.filters);
-  $("preview-rounds-options").innerHTML = [1, 2, 3, 4, 5]
-    .map(
-      (rounds) =>
-        `<button class="chip ${state.rounds === rounds ? "active" : ""}" data-rounds="${rounds}" type="button" aria-pressed="${state.rounds === rounds}">${rounds}</button>`,
-    )
-    .join("");
-  renderDurationOptions("preview-work-options", WORK_DURATIONS, state.workDuration, "work-duration");
-  renderDurationOptions("preview-rest-options", REST_DURATIONS, state.restDuration, "rest-duration");
+  $("preview-workout-stats").textContent = `${state.rounds} round${state.rounds === 1 ? "" : "s"} / ${state.workDuration}s work / ${state.restDuration}s rest`;
   $("preview-list").innerHTML = state.baseStack
     .map(
       (exercise, index) => `
@@ -729,17 +724,63 @@ function retryPreviewExercise(index) {
   renderPreview();
 }
 
-function setWorkoutRounds(rounds) {
-  if (!Number.isInteger(rounds) || rounds < 1 || rounds > 5) return;
-  state.rounds = rounds;
-  renderPreview();
+function renderWorkoutSetup() {
+  const setup = state.workoutSetup;
+  if (!setup) return;
+  $("workout-setup-title").textContent = "workout settings";
+  $("workout-setup-rounds").innerHTML = [1, 2, 3, 4, 5]
+    .map(
+      (rounds) =>
+        `<button class="chip ${setup.rounds === rounds ? "active" : ""}" data-setup-rounds="${rounds}" type="button" aria-pressed="${setup.rounds === rounds}">${rounds}</button>`,
+    )
+    .join("");
+  renderDurationOptions("workout-setup-work", WORK_DURATIONS, setup.workDuration, "setup-work");
+  renderDurationOptions("workout-setup-rest", REST_DURATIONS, setup.restDuration, "setup-rest");
 }
 
-function setWorkoutDuration(kind, duration) {
-  const durations = kind === "work" ? WORK_DURATIONS : REST_DURATIONS;
-  if (!durations.includes(duration)) return;
-  if (kind === "work") state.workDuration = duration;
-  else state.restDuration = duration;
+function openWorkoutSetup(mode, index = null) {
+  if (mode === "library" && !state.library[index]) return;
+  window.clearTimeout(workoutSetupTimer);
+  state.workoutSetup = {
+    mode,
+    index,
+    rounds: mode === "preview" ? state.rounds : 1,
+    workDuration: mode === "preview" ? state.workDuration : SNACK_DURATION,
+    restDuration: mode === "preview" ? state.restDuration : REST_DURATION,
+  };
+  renderWorkoutSetup();
+  const sheet = $("workout-setup-sheet");
+  sheet.hidden = false;
+  document.body.classList.add("workout-setup-sheet-open");
+  window.requestAnimationFrame(() => sheet.classList.add("open"));
+}
+
+function closeWorkoutSetup(immediate = false) {
+  const sheet = $("workout-setup-sheet");
+  window.clearTimeout(workoutSetupTimer);
+  sheet.classList.remove("open");
+  document.body.classList.remove("workout-setup-sheet-open");
+  state.workoutSetup = null;
+  if (immediate) {
+    sheet.hidden = true;
+    return;
+  }
+  workoutSetupTimer = window.setTimeout(() => {
+    sheet.hidden = true;
+  }, 300);
+}
+
+function confirmWorkoutSetup() {
+  const setup = state.workoutSetup;
+  if (!setup) return;
+  closeWorkoutSetup(true);
+  if (setup.mode === "library") {
+    runSingleSnack(setup.index, setup);
+    return;
+  }
+  state.rounds = setup.rounds;
+  state.workDuration = setup.workDuration;
+  state.restDuration = setup.restDuration;
   renderPreview();
 }
 
@@ -1016,16 +1057,16 @@ function renderSettingsEditor() {
   $("settings-remove-btn").disabled = state.library.filter((item) => !item.deleted).length <= 1;
 }
 
-function runSingleSnack(index) {
+function runSingleSnack(index, options = {}) {
   const exercise = state.library[index];
   if (!exercise) {
     return;
   }
   state.baseStack = [exercise];
   state.stack = [...state.baseStack];
-  state.rounds = 1;
-  state.workDuration = SNACK_DURATION;
-  state.restDuration = REST_DURATION;
+  state.rounds = options.rounds || 1;
+  state.workDuration = options.workDuration || SNACK_DURATION;
+  state.restDuration = options.restDuration ?? REST_DURATION;
   beginRun();
 }
 
@@ -2149,25 +2190,12 @@ async function init() {
     });
   });
   $("begin-btn").addEventListener("click", beginRun);
+  $("preview-settings-btn").addEventListener("click", () => openWorkoutSetup("preview"));
   $("preview-list").addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
     const retryButton = target?.closest('[data-action="retry-preview"]');
     if (!(retryButton instanceof HTMLButtonElement)) return;
     retryPreviewExercise(Number(retryButton.dataset.index));
-  });
-  $("preview-rounds-options").addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target : null;
-    const button = target?.closest("[data-rounds]");
-    if (!(button instanceof HTMLButtonElement)) return;
-    setWorkoutRounds(Number(button.dataset.rounds));
-  });
-  $("preview-work-options").addEventListener("click", (event) => {
-    const button = (event.target instanceof Element ? event.target : null)?.closest("[data-work-duration]");
-    if (button instanceof HTMLButtonElement) setWorkoutDuration("work", Number(button.dataset.workDuration));
-  });
-  $("preview-rest-options").addEventListener("click", (event) => {
-    const button = (event.target instanceof Element ? event.target : null)?.closest("[data-rest-duration]");
-    if (button instanceof HTMLButtonElement) setWorkoutDuration("rest", Number(button.dataset.restDuration));
   });
   $("btn-pause").addEventListener("click", togglePause);
   $("rest-btn-pause").addEventListener("click", togglePause);
@@ -2241,6 +2269,20 @@ async function init() {
   $("admin-toggle").addEventListener("click", toggleAdminPanel);
   $("admin-panel-close").addEventListener("click", () => closeAdminPanel());
   $("admin-sheet-scrim").addEventListener("click", () => closeAdminPanel());
+  $("workout-setup-close").addEventListener("click", () => closeWorkoutSetup());
+  $("workout-setup-scrim").addEventListener("click", () => closeWorkoutSetup());
+  $("workout-setup-confirm").addEventListener("click", confirmWorkoutSetup);
+  $("workout-setup-sheet").addEventListener("click", (event) => {
+    const setup = state.workoutSetup;
+    const button = (event.target instanceof Element ? event.target : null)?.closest(
+      "[data-setup-rounds], [data-setup-work], [data-setup-rest]",
+    );
+    if (!setup || !(button instanceof HTMLButtonElement)) return;
+    if (button.dataset.setupRounds) setup.rounds = Number(button.dataset.setupRounds);
+    if (button.dataset.setupWork) setup.workDuration = Number(button.dataset.setupWork);
+    if (button.dataset.setupRest) setup.restDuration = Number(button.dataset.setupRest);
+    renderWorkoutSetup();
+  });
   $("filter-panel-close").addEventListener("click", () => closeFilterSheet());
   $("filter-sheet-scrim").addEventListener("click", () => closeFilterSheet());
 
@@ -2284,7 +2326,7 @@ async function init() {
     }
     const goBtn = target ? target.closest('[data-action="run-single-snack"]') : null;
     if (goBtn) {
-      runSingleSnack(Number(goBtn.dataset.index));
+      openWorkoutSetup("library", Number(goBtn.dataset.index));
       return;
     }
     const button = target ? target.closest('[data-action="edit-snack"]') : null;
@@ -2295,6 +2337,11 @@ async function init() {
     openSnackEditor(Number(button.dataset.index));
   });
   document.addEventListener("keydown", (event) => {
+    if (state.workoutSetup && event.key === "Escape") {
+      event.preventDefault();
+      closeWorkoutSetup();
+      return;
+    }
     if (state.cancelPanelOpen && event.key === "Escape") {
       event.preventDefault();
       closeCancelPanel();
