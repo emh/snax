@@ -28,56 +28,15 @@
     <div class="app-shell">
       <section id="view-home" class="view view-home active">
         <header class="home-header">
-          <div class="home-actions">
-            <button class="header-link" id="link-btn" type="button" aria-expanded="false">link</button>
-            <button class="header-link" id="settings-btn" type="button">library</button>
-          </div>
+          <button class="home-link-button" id="link-btn" type="button" aria-label="link devices" aria-expanded="false">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+          </button>
           <h1>sna<span class="x">x</span></h1>
           <p class="date" id="home-date"></p>
         </header>
-
-        <section class="link-panel" id="link-panel" hidden>
-          <p class="link-helper" id="link-helper">open this on another device to sync</p>
-          <p class="link-label">link code</p>
-          <div class="link-code-box" id="link-code-box">not ready yet</div>
-          <p class="link-label">share URL</p>
-          <div class="link-url-box" id="link-url-box">not ready yet</div>
-          <div class="link-copy-row">
-            <button class="btn-muted" id="copy-link-btn" type="button" hidden>copy</button>
-          </div>
-          <form class="link-join" id="link-join-form">
-            <label class="settings-field link-field">
-              <span class="settings-label">enter code from another device</span>
-              <p class="link-warning">
-                connecting will overwrite this device's local snacks, history, and library with data from that other
-                device/account.
-              </p>
-              <input
-                class="settings-input link-code-input"
-                id="link-code-input"
-                type="text"
-                inputmode="text"
-                autocapitalize="characters"
-                autocomplete="off"
-                autocorrect="off"
-                spellcheck="false"
-                placeholder="ABCD1234 or pasted link"
-              />
-            </label>
-            <button class="btn-muted" id="link-connect-btn" type="submit">connect</button>
-          </form>
-          <div class="link-actions">
-            <button class="btn-muted" id="close-link-btn" type="button">ok</button>
-          </div>
-        </section>
-
-        <section class="today-panel" id="today-panel">
-          <div class="panel-head">
-            <span class="section-label">Today</span>
-            <span class="section-meta" id="today-meta">0 snacks</span>
-          </div>
-          <div class="today-spark" id="today-spark"></div>
-        </section>
 
         <section class="picker">
           <div class="size-actions">
@@ -92,17 +51,15 @@
               </svg>
             </button>
           </div>
-
-          <div class="advanced" id="advanced"></div>
         </section>
 
-        <section class="archive" id="archive-section">
-          <div class="archive-head">
-            <span class="section-label">History</span>
-            <span class="section-label" id="archive-stats">0 days / 0 snacks / load 0</span>
+        <section class="today-panel" id="today-panel">
+          <div class="panel-head">
+            <span class="section-label">Today</span>
+            <span class="section-meta" id="today-meta">0 snacks</span>
           </div>
-
-          <div class="archive-list" id="archive-list"></div>
+          <div class="today-spark" id="today-spark"></div>
+          <div class="today-sessions" id="today-sessions"></div>
         </section>
       </section>
 
@@ -193,7 +150,7 @@
         </div>
       </section>
 
-      <section id="view-day" class="view view-day">
+      <section id="view-history" class="view view-history">
         <div class="preview-header">
           <button class="back-btn" data-action="home" type="button" aria-label="back">
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -201,15 +158,10 @@
               <path d="M19 12H5"></path>
             </svg>
           </button>
-          <h2 class="preview-title" id="day-title">today</h2>
-          <p class="preview-sub" id="day-sub"></p>
+          <h2 class="preview-title">history</h2>
+          <p class="preview-sub" id="history-meta"></p>
         </div>
-
-        <div class="day-hero">
-          <div class="day-hero-spark" id="day-hero-spark"></div>
-        </div>
-
-        <div class="preview-list" id="day-list"></div>
+        <div class="history-list" id="history-list"></div>
       </section>
 
       <section id="view-settings" class="view view-settings">
@@ -230,17 +182,15 @@
 
         </div>
 
-        <div class="settings-filters">
-          <div id="library-filter-section"></div>
-
-          <label class="settings-field settings-search-field">
-            <span class="settings-label">Filter</span>
-            <input class="settings-input settings-search-input" id="settings-search-input" type="text" />
-          </label>
-        </div>
-
         <div class="settings-summary">
-          <p class="settings-count" id="settings-count">0 snacks</p>
+          <div class="settings-count-filter">
+            <p class="settings-count" id="settings-count">0 snacks</p>
+            <button class="settings-filter-button" id="settings-filter-toggle" type="button" aria-label="filter exercises" aria-expanded="false">
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path>
+              </svg>
+            </button>
+          </div>
           <label class="settings-visible-toggle">
             <span>enable</span>
             <input id="settings-visible-toggle" type="checkbox" />
@@ -356,6 +306,88 @@
           </div>
         </div>
       </section>
+
+      <nav class="bottom-toolbar" id="bottom-toolbar" aria-label="primary">
+        <button class="toolbar-button active" data-tab="home" type="button" aria-label="today" aria-current="page">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>
+          </svg>
+        </button>
+        <button class="toolbar-button" data-tab="history" type="button" aria-label="history">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path>
+            <path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path>
+          </svg>
+        </button>
+        <button class="toolbar-button" data-tab="settings" type="button" aria-label="library">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path>
+          </svg>
+        </button>
+      </nav>
+
+      <div class="filter-sheet" id="filter-sheet" hidden>
+        <button class="filter-sheet-scrim" id="filter-sheet-scrim" type="button" aria-label="close filters"></button>
+        <section class="filter-panel" role="dialog" aria-modal="true" aria-labelledby="filter-panel-title">
+          <div class="filter-panel-head">
+            <h2 id="filter-panel-title">filters</h2>
+            <button class="filter-panel-close" id="filter-panel-close" type="button" aria-label="close filters">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <div id="filter-sheet-controls"></div>
+          <label class="settings-field filter-sheet-search" id="filter-sheet-search" hidden>
+            <span class="settings-label">Filter</span>
+            <input class="settings-input settings-search-input" id="filter-search-input" type="text" />
+          </label>
+        </section>
+      </div>
+
+      <div class="link-sheet" id="link-panel" hidden>
+        <button class="link-sheet-scrim" id="link-sheet-scrim" type="button" aria-label="close link panel"></button>
+        <section class="link-bottom-panel" role="dialog" aria-modal="true" aria-labelledby="link-panel-title">
+          <div class="filter-panel-head">
+            <h2 id="link-panel-title">link</h2>
+            <button class="filter-panel-close" id="link-panel-close" type="button" aria-label="close link panel">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <p class="link-helper" id="link-helper">open this on another device to sync</p>
+          <p class="link-label">link code</p>
+          <div class="link-code-box" id="link-code-box">not ready yet</div>
+          <p class="link-label">share URL</p>
+          <div class="link-control-row">
+            <div class="link-url-box" id="link-url-box">not ready yet</div>
+            <button class="link-icon-button" id="copy-link-btn" type="button" aria-label="copy link" hidden>
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+              </svg>
+            </button>
+          </div>
+          <form class="link-join" id="link-join-form">
+            <div class="settings-field link-field">
+              <label class="settings-label" for="link-code-input">enter code from another device</label>
+              <p class="link-warning">connecting will overwrite this device's local snacks, history, and library with data from that other device/account.</p>
+              <span class="link-control-row">
+                <input class="settings-input link-code-input" id="link-code-input" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="ABCD1234 or pasted link" />
+                <button class="link-icon-button" id="link-connect-btn" type="submit" aria-label="connect device">
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"></path><path d="m2 22 3-3"></path><path d="M7.5 13.5 10 11"></path><path d="M10.5 16.5 13 14"></path><path d="m18 3-4 4h6l-4 4"></path>
+                  </svg>
+                </button>
+              </span>
+            </div>
+          </form>
+        </section>
+      </div>
 
       <div class="toast" id="toast"></div>
     </div>

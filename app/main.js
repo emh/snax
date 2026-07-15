@@ -8,10 +8,8 @@ import {
   ensureHistoryEntry,
   filterExercises,
   findHistoryEntry,
-  formatDayTitle,
   formatLongDate,
   formatMetaText,
-  formatMonthDay,
   formatShortDate,
   formatSizeLabel,
   formatTime,
@@ -23,8 +21,8 @@ import {
   pickStack,
   resolveSnacks,
   sortHistoryDescending,
-  summarizeEntries,
   todayKey,
+  toDateKey,
 } from "./model.js";
 import { hydrateSnapshot, loadAppState, loadSettings, saveAppState } from "./storage.js";
 import { SnaxSync, buildDeviceLink, createLinkRoom, fetchLinkState, nextClock, normalizeCode, observeClock } from "./sync.js";
@@ -35,9 +33,13 @@ const state = {
   filters: { ...DEFAULT_FILTERS },
   settingsFilters: {
     categories: [...CATEGORY_ORDER],
-    intensity: "any",
+    intensities: [1, 2, 3],
     query: "",
   },
+  filterSheetScope: null,
+  expandedHistoryMonths: new Set(),
+  expandedHistoryDays: new Set(),
+  animatedHistoryDays: new Set(),
   stack: [],
   runIdx: 0,
   secondsLeft: SNACK_DURATION,
@@ -61,7 +63,6 @@ const state = {
   linkCodeInput: "",
   editingIndex: null,
   currentView: "home",
-  collapsedMonths: new Set(),
   pendingImport: null,
   importModes: {
     history: "merge",
@@ -78,6 +79,8 @@ let syncClient = null;
 let timerWakeLock = null;
 let timerWakeLockRequest = null;
 let audioCtx = null;
+let filterSheetTimer = null;
+let linkPanelTimer = null;
 
 function initAudio() {
   if (!audioCtx) {
@@ -156,11 +159,44 @@ function toast(message) {
 }
 
 function showView(name) {
+  if (state.filterSheetScope && name !== state.currentView) {
+    closeFilterSheet(true);
+  }
+  if (state.linkPanelOpen && name !== "home") {
+    closeLinkPanel(true);
+  }
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
   $(`view-${name}`).classList.add("active");
   state.currentView = name;
+  renderBottomToolbar();
   syncTimerWakeLock();
-  requestAnimationFrame(() => window.scrollTo(0, 0));
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    syncFloatingBackButton();
+  });
+}
+
+function syncFloatingBackButton() {
+  document.querySelectorAll('.back-btn[data-action="home"]').forEach((button) => {
+    const shouldFloat = button.closest(".view.active") && window.scrollY > 40;
+    button.classList.toggle("back-btn-floating", Boolean(shouldFloat));
+    button.closest(".preview-header")?.classList.toggle("has-floating-back", Boolean(shouldFloat));
+  });
+}
+
+function renderBottomToolbar() {
+  const toolbar = $("bottom-toolbar");
+  const activeTab = state.currentView === "settings" ? "settings" : state.currentView;
+  toolbar.hidden = !["home", "history", "settings"].includes(activeTab);
+  toolbar.querySelectorAll("[data-tab]").forEach((button) => {
+    const isActive = button.dataset.tab === activeTab;
+    button.classList.toggle("active", isActive);
+    if (isActive) {
+      button.setAttribute("aria-current", "page");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  });
 }
 
 function isTimerViewActive() {
@@ -238,16 +274,16 @@ function resolveEntrySnacks(entry) {
   return entry ? resolveSnacks(entry.snacks, state.library) : [];
 }
 
-function renderSparkBars(snacks, variant, emptyLabel) {
+function renderSparkBars(snacks, variant, emptyLabel, animate = true) {
   if (snacks.length === 0) {
     return `<span class="spark-empty">${esc(emptyLabel)}</span>`;
   }
 
-  const unit = variant === "archive" ? 7 : variant === "day" ? 12 : 10;
+  const unit = variant === "archive" ? 7 : 10;
   return snacks
     .map(
       (snack, index) =>
-        `<span class="spark-bar spark-bar-${variant} cat-${esc(snack.category)}" style="height: ${8 + snack.intensity * unit}px; animation-delay: ${index * 0.04}s"></span>`,
+        `<span class="spark-bar spark-bar-${variant} cat-${esc(snack.category)}${animate ? "" : " spark-bar-static"}" style="height: ${8 + snack.intensity * unit}px; animation-delay: ${index * 0.04}s"></span>`,
     )
     .join("");
 }
@@ -265,7 +301,6 @@ function renderHome() {
   renderDate();
   renderLinkPanel();
   renderToday();
-  renderArchive();
 }
 
 function renderLinkPanel() {
@@ -274,12 +309,16 @@ function renderLinkPanel() {
   const linkUrl = state.sync.code ? buildDeviceLink(window.location.href, state.sync.code) : "";
   const linkCode = state.sync.code || "";
 
-  panel.hidden = !state.linkPanelOpen;
   toggle?.setAttribute("aria-expanded", String(state.linkPanelOpen));
 
   if (!state.linkPanelOpen) {
     return;
   }
+
+  window.clearTimeout(linkPanelTimer);
+  panel.hidden = false;
+  document.body.classList.add("link-sheet-open");
+  window.requestAnimationFrame(() => panel.classList.add("open"));
 
   $("link-helper").textContent = linkHelperText(linkUrl);
   $("link-code-box").textContent = state.linkBusy && !linkCode ? "preparing..." : linkCode || "not ready yet";
@@ -311,9 +350,22 @@ function linkHelperText(linkUrl) {
   return "enter a code from another device below to sync";
 }
 
-function closeLinkPanel() {
+function closeLinkPanel(immediate = false) {
+  const panel = $("link-panel");
+  window.clearTimeout(linkPanelTimer);
   state.linkPanelOpen = false;
-  renderLinkPanel();
+  panel.classList.remove("open");
+  document.body.classList.remove("link-sheet-open");
+  $("link-btn").setAttribute("aria-expanded", "false");
+
+  if (immediate) {
+    panel.hidden = true;
+    return;
+  }
+
+  linkPanelTimer = window.setTimeout(() => {
+    panel.hidden = true;
+  }, 300);
 }
 
 function renderDate() {
@@ -323,101 +375,121 @@ function renderDate() {
 function renderToday() {
   const entry = findHistoryEntry(state.history, todayKey());
   const snacks = resolveEntrySnacks(entry);
-  const panel = $("today-panel");
   $("today-meta").textContent = formatMetaText(snacks);
   $("today-spark").innerHTML = renderSparkBars(snacks, "today", "quiet so far");
-  panel.classList.toggle("clickable", snacks.length > 0);
+  $("today-sessions").innerHTML = renderSessionGroups(snacks);
 }
 
-function monthKeyForDate(dateKey) {
-  return String(dateKey || "").slice(0, 7);
+function renderSessionGroups(snacks) {
+  return groupByStack(snacks)
+    .map(
+      (group) => `
+        <div class="day-group">
+          <div class="day-group-time">${group.at ? esc(formatTime(group.at)) : "--"}</div>
+          <div class="day-group-snacks">
+            ${group.snacks
+              .map(
+                (snack) => `
+                  <div class="day-snack">
+                    <span class="day-bar cat-${esc(snack.category)}" data-intensity="${snack.intensity}"></span>
+                    <span class="day-snack-name">${esc(snack.name)}${snack.skipped ? '<span class="skipped-tag"> skipped</span>' : ""}</span>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+        </div>
+      `,
+    )
+    .join("");
 }
 
-function formatMonthTitle(monthKey) {
-  const [year, month] = String(monthKey).split("-").map(Number);
-  return new Intl.DateTimeFormat(undefined, {
-    month: "long",
-    year: "numeric",
-  }).format(new Date(year, month - 1, 1, 12, 0, 0, 0));
+function historyMonthKey(dateKey) {
+  return String(dateKey).slice(0, 7);
 }
 
-function groupEntriesByMonth(entries) {
+function formatHistoryMonth(monthKey) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(
+    new Date(year, month - 1, 1, 12),
+  );
+}
+
+function getHistoryMonthGroups() {
   const groups = [];
-  const groupsByKey = new Map();
+  const byMonth = new Map();
 
-  entries.forEach((entry) => {
-    const monthKey = monthKeyForDate(entry.dateKey);
-    if (!monthKey) {
-      return;
-    }
-
-    let group = groupsByKey.get(monthKey);
-    if (!group) {
-      group = { monthKey, entries: [] };
-      groupsByKey.set(monthKey, group);
-      groups.push(group);
-    }
-
-    group.entries.push(entry);
-  });
+  sortHistoryDescending(state.history)
+    .filter((entry) => entry.snacks.length > 0)
+    .forEach((entry) => {
+      const monthKey = historyMonthKey(entry.dateKey);
+      let group = byMonth.get(monthKey);
+      if (!group) {
+        group = { monthKey, entries: [] };
+        byMonth.set(monthKey, group);
+        groups.push(group);
+      }
+      group.entries.push({ dateKey: entry.dateKey, snacks: resolveEntrySnacks(entry) });
+    });
 
   return groups;
 }
 
-function renderArchive() {
-  const entries = state.history.map((entry) => ({
-    dateKey: entry.dateKey,
-    snacks: resolveEntrySnacks(entry),
-  }));
-  const archiveSection = $("archive-section");
+function renderHistory() {
+  const groups = getHistoryMonthGroups();
+  const allSnacks = groups.flatMap((group) => group.entries.flatMap((entry) => entry.snacks));
+  $("history-meta").textContent = `${groups.length} month${groups.length === 1 ? "" : "s"} / ${allSnacks.length} snacks / load ${getLoad(allSnacks)}`;
 
-  archiveSection.hidden = entries.length === 0;
-  if (entries.length === 0) {
-    $("archive-list").innerHTML = "";
-    $("archive-stats").textContent = "";
-    return;
-  }
+  $("history-list").innerHTML = groups.length
+    ? groups
+        .map((group) => {
+          const monthOpen = state.expandedHistoryMonths.has(group.monthKey);
+          const monthSnacks = group.entries.flatMap((entry) => entry.snacks);
+          return `
+            <section class="history-month">
+              <button class="archive-month-toggle" data-history-month="${esc(group.monthKey)}" type="button" aria-expanded="${monthOpen}">
+                <span class="archive-month-title">${esc(formatHistoryMonth(group.monthKey))}</span>
+                <span class="archive-month-meta">${group.entries.length} days / ${monthSnacks.length} snacks / load ${getLoad(monthSnacks)}</span>
+              </button>
+              <div class="history-month-days" ${monthOpen ? "" : "hidden"}>
+                ${group.entries
+                  .map((entry) => {
+                    const dayOpen = state.expandedHistoryDays.has(entry.dateKey);
+                    const animateSpark = monthOpen && !state.animatedHistoryDays.has(entry.dateKey);
+                    return `
+                      <article class="history-day">
+                        <button class="history-day-toggle" data-history-day="${esc(entry.dateKey)}" type="button" aria-expanded="${dayOpen}">
+                          <span class="archive-date">${esc(formatShortDate(entry.dateKey))}</span>
+                          <span class="archive-spark">${renderSparkBars(entry.snacks, "archive", "", animateSpark)}</span>
+                          <span class="archive-meta">${entry.snacks.length} snacks / load ${getLoad(entry.snacks)}</span>
+                        </button>
+                        <div class="history-day-details" ${dayOpen ? "" : "hidden"}>${renderSessionGroups(entry.snacks)}</div>
+                      </article>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </section>
+          `;
+        })
+        .join("")
+    : '<p class="settings-empty">no history yet</p>';
 
-  const stats = summarizeEntries(entries);
-
-  $("archive-stats").textContent = `${entries.length} days / ${stats.count} snacks / load ${stats.load}`;
-  $("archive-list").innerHTML = groupEntriesByMonth(entries)
-    .map((group) => {
-      const monthStats = summarizeEntries(group.entries);
-      const isCollapsed = state.collapsedMonths.has(group.monthKey);
-      return `
-        <section class="archive-month">
-          <button class="archive-month-toggle" type="button" data-month="${esc(group.monthKey)}" aria-expanded="${esc(String(!isCollapsed))}">
-            <span class="archive-month-title">${esc(formatMonthTitle(group.monthKey))}</span>
-            <span class="archive-month-meta">${group.entries.length} days / ${monthStats.count} snacks / load ${monthStats.load}</span>
-          </button>
-          <div class="archive-month-days" ${isCollapsed ? "hidden" : ""}>
-            ${group.entries
-              .map((entry) => {
-                const hasSnacks = entry.snacks.length > 0;
-                return `
-                  <div class="archive-row ${hasSnacks ? "has-snacks" : ""}" ${hasSnacks ? `data-date="${esc(entry.dateKey)}"` : ""}>
-                    <span class="archive-date">${esc(formatShortDate(entry.dateKey))}</span>
-                    <div class="archive-spark">${renderSparkBars(entry.snacks, "archive", "quiet")}</div>
-                  </div>
-                `;
-              })
-              .join("")}
-          </div>
-        </section>
-      `;
-    })
-    .join("");
+  groups
+    .filter((group) => state.expandedHistoryMonths.has(group.monthKey))
+    .forEach((group) => group.entries.forEach((entry) => state.animatedHistoryDays.add(entry.dateKey)));
 }
 
-function toggleArchiveMonth(monthKey) {
-  if (state.collapsedMonths.has(monthKey)) {
-    state.collapsedMonths.delete(monthKey);
-  } else {
-    state.collapsedMonths.add(monthKey);
-  }
+function toggleHistoryMonth(monthKey) {
+  if (state.expandedHistoryMonths.has(monthKey)) state.expandedHistoryMonths.delete(monthKey);
+  else state.expandedHistoryMonths.add(monthKey);
+  renderHistory();
+}
 
-  renderArchive();
+function toggleHistoryDay(dateKey) {
+  if (state.expandedHistoryDays.has(dateKey)) state.expandedHistoryDays.delete(dateKey);
+  else state.expandedHistoryDays.add(dateKey);
+  renderHistory();
 }
 
 function currentSnapshot() {
@@ -446,9 +518,10 @@ function refreshVisibleViews() {
     renderSettingsEditor();
   }
 
-  if ($("view-day").classList.contains("active")) {
-    goHome();
+  if ($("view-history").classList.contains("active")) {
+    renderHistory();
   }
+
 }
 
 function applyRemoteSnapshot(snapshot, version) {
@@ -559,14 +632,13 @@ function retryPreviewExercise(index) {
 
 function renderFilterSection(targetId, scope, filters) {
   const heatOptions = [
-    ["any", "any"],
     ["1", "easy"],
     ["2", "medium"],
     ["3", "hard"],
   ];
   const heatChips = heatOptions
     .map(([value, label]) => {
-      const isActive = filters.intensity === value;
+      const isActive = filters.intensities.includes(Number(value));
       return `<button class="chip ${isActive ? "active" : ""}" data-filter-scope="${scope}" data-filter-group="intensity" data-val="${value}" type="button" aria-pressed="${isActive}">${label}</button>`;
     })
     .join("");
@@ -587,16 +659,66 @@ function renderFilterSection(targetId, scope, filters) {
   `;
 }
 
+function renderFilterSheet() {
+  const scope = state.filterSheetScope;
+  if (!scope) return;
+
+  const filters = scope === "library" ? state.settingsFilters : state.filters;
+  renderFilterSection("filter-sheet-controls", scope, filters);
+  $("filter-sheet-search").hidden = scope !== "library";
+  $("filter-search-input").value = state.settingsFilters.query;
+}
+
+function openFilterSheet(scope) {
+  if (state.linkPanelOpen) closeLinkPanel(true);
+  window.clearTimeout(filterSheetTimer);
+  state.filterSheetScope = scope;
+  renderFilterSheet();
+
+  const sheet = $("filter-sheet");
+  sheet.hidden = false;
+  document.body.classList.add("filter-sheet-open");
+  $("more-toggle").setAttribute("aria-expanded", String(scope === "main"));
+  $("settings-filter-toggle").setAttribute("aria-expanded", String(scope === "library"));
+  window.requestAnimationFrame(() => sheet.classList.add("open"));
+}
+
+function closeFilterSheet(immediate = false) {
+  const sheet = $("filter-sheet");
+  window.clearTimeout(filterSheetTimer);
+  sheet.classList.remove("open");
+  document.body.classList.remove("filter-sheet-open");
+  $("more-toggle").setAttribute("aria-expanded", "false");
+  $("settings-filter-toggle").setAttribute("aria-expanded", "false");
+  state.filterSheetScope = null;
+
+  if (immediate) {
+    sheet.hidden = true;
+    return;
+  }
+
+  filterSheetTimer = window.setTimeout(() => {
+    sheet.hidden = true;
+  }, 300);
+}
+
+function toggleFilterSheet(scope) {
+  if (state.filterSheetScope === scope && $("filter-sheet").classList.contains("open")) {
+    closeFilterSheet();
+    return;
+  }
+
+  openFilterSheet(scope);
+}
+
 function renderSettings() {
-  renderFilterSection("library-filter-section", "library", state.settingsFilters);
   const visibleSnacks = getVisibleLibrarySnacks();
   const visibleEnabledCount = visibleSnacks.filter(({ exercise }) => exercise.enabled !== false).length;
   const hasActiveFilters =
     state.settingsFilters.categories.length !== CATEGORY_ORDER.length ||
-    state.settingsFilters.intensity !== "any" ||
+    state.settingsFilters.intensities.length !== 3 ||
     state.settingsFilters.query.trim().length > 0;
 
-  $("settings-search-input").value = state.settingsFilters.query;
   const totalActive = state.library.filter((exercise) => !exercise.deleted).length;
   $("settings-count").textContent = formatSettingsCount(visibleSnacks.length, totalActive, hasActiveFilters);
   $("settings-visible-toggle").checked = visibleSnacks.length > 0 && visibleEnabledCount === visibleSnacks.length;
@@ -648,8 +770,7 @@ function getVisibleLibrarySnacks() {
   return state.library.map((exercise, index) => ({ exercise, index })).filter(({ exercise }) => {
     if (exercise.deleted) return false;
     const matchesCategory = state.settingsFilters.categories.includes(exercise.category);
-    const matchesIntensity =
-      state.settingsFilters.intensity === "any" || exercise.intensity === Number(state.settingsFilters.intensity);
+    const matchesIntensity = state.settingsFilters.intensities.includes(exercise.intensity);
     const matchesQuery = !query || exercise.name.toLowerCase().includes(query);
     return matchesCategory && matchesIntensity && matchesQuery;
   });
@@ -893,42 +1014,6 @@ function quitRun() {
   showView("home");
 }
 
-function showDay(dateKey) {
-  const entry = findHistoryEntry(state.history, dateKey);
-  if (!entry || entry.snacks.length === 0) {
-    return;
-  }
-
-  const snacks = resolveEntrySnacks(entry);
-
-  $("day-title").textContent = formatDayTitle(dateKey);
-  $("day-sub").textContent = `${formatMonthDay(dateKey)} / ${snacks.length} snack${snacks.length === 1 ? "" : "s"} / load ${getLoad(snacks)}`;
-  $("day-hero-spark").innerHTML = renderSparkBars(snacks, "day", "");
-  $("day-list").innerHTML = groupByStack(snacks)
-    .map(
-      (group) => `
-        <div class="day-group">
-          <div class="day-group-time">${group.at ? esc(formatTime(group.at)) : "--"}</div>
-          <div class="day-group-snacks">
-            ${group.snacks
-              .map(
-                (snack) => `
-                  <div class="day-snack">
-                    <span class="day-bar cat-${esc(snack.category)}" data-intensity="${snack.intensity}"></span>
-                    <span class="day-snack-name">${esc(snack.name)}${snack.skipped ? '<span class="skipped-tag"> skipped</span>' : ""}</span>
-                  </div>
-                `,
-              )
-              .join("")}
-          </div>
-        </div>
-      `,
-    )
-    .join("");
-
-  showView("day");
-}
-
 function openSettings() {
   renderSettings();
   renderSettingsEditor();
@@ -943,10 +1028,16 @@ function goHome() {
 }
 
 async function toggleLinkPanel() {
-  state.linkPanelOpen = !state.linkPanelOpen;
+  if (state.linkPanelOpen) {
+    closeLinkPanel();
+    return;
+  }
+
+  if (state.filterSheetScope) closeFilterSheet(true);
+  state.linkPanelOpen = true;
   renderLinkPanel();
 
-  if (!state.linkPanelOpen || state.sync.code || state.linkBusy) {
+  if (state.sync.code || state.linkBusy) {
     return;
   }
 
@@ -1131,14 +1222,16 @@ function attachChipHandlers() {
         ? filters.categories.filter((category) => category !== rawValue)
         : [...filters.categories, rawValue];
     } else {
-      filters.intensity = rawValue;
+      const intensity = Number(rawValue);
+      filters.intensities = filters.intensities.includes(intensity)
+        ? filters.intensities.filter((value) => value !== intensity)
+        : [...filters.intensities, intensity].sort();
     }
 
     if (chip.dataset.filterScope === "library") {
       renderSettings();
-    } else {
-      renderFilterSection("advanced", "main", state.filters);
     }
+    renderFilterSheet();
   });
 }
 
@@ -1217,8 +1310,8 @@ function addSnack() {
   if (state.settingsFilters.categories.length === 1) {
     exercise.category = state.settingsFilters.categories[0];
   }
-  if (state.settingsFilters.intensity !== "any") {
-    exercise.intensity = Number(state.settingsFilters.intensity);
+  if (state.settingsFilters.intensities.length === 1) {
+    exercise.intensity = state.settingsFilters.intensities[0];
   }
 
   state.library.push(exercise);
@@ -1642,8 +1735,86 @@ function mergeImportedHistory(baseHistory, importedHistory) {
   return { history: sortHistoryDescending([...entriesByDate.values()]), addedDays, addedSnacks };
 }
 
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function shuffled(values) {
+  const result = values.slice();
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(0, index);
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
+}
+
+function populateRandomHistory() {
+  const pool = state.library.filter((exercise) => !exercise.deleted && exercise.enabled !== false);
+  if (pool.length === 0) throw new Error("No enabled exercises are available.");
+
+  const now = new Date();
+  const existingDates = new Set(state.history.map((entry) => entry.dateKey));
+  const summary = { months: 6, days: 0, sessions: 0, snacks: 0 };
+
+  for (let monthOffset = 0; monthOffset < 6; monthOffset += 1) {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1, 12);
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const lastEligibleDay = monthOffset === 0 ? Math.max(0, now.getDate() - 1) : daysInMonth;
+    const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const existingMonthDays = [...existingDates].filter((dateKey) => dateKey.startsWith(monthKey)).length;
+    const targetDays = Math.min(lastEligibleDay, randomInt(10, 20));
+    const availableDays = shuffled(
+      Array.from({ length: lastEligibleDay }, (_, index) => index + 1).filter((day) => {
+        const dateKey = toDateKey(new Date(year, month, day, 12));
+        return !existingDates.has(dateKey);
+      }),
+    );
+
+    availableDays.slice(0, Math.max(0, targetDays - existingMonthDays)).forEach((day) => {
+      const dateKey = toDateKey(new Date(year, month, day, 12));
+      const entry = ensureHistoryEntry(state.history, dateKey);
+      const sessionCount = randomInt(3, 7);
+
+      for (let sessionIndex = 0; sessionIndex < sessionCount; sessionIndex += 1) {
+        const hour = 7 + Math.floor((sessionIndex * 14) / sessionCount) + randomInt(0, 1);
+        const minute = randomInt(0, 11) * 5;
+        const at = new Date(year, month, day, Math.min(hour, 21), minute).toISOString();
+        const stack = `dev-${dateKey}-${sessionIndex}-${Math.random().toString(36).slice(2, 7)}`;
+        const sessionSize = [1, 3, 5][randomInt(0, 2)];
+        const exercises = pickStack(pool, Math.min(sessionSize, pool.length));
+
+        entry.snacks.push(
+          ...exercises.map((exercise) => ({
+            id: exercise.id,
+            at,
+            stack,
+            skipped: Math.random() < 0.06,
+          })),
+        );
+        summary.sessions += 1;
+        summary.snacks += exercises.length;
+      }
+
+      existingDates.add(dateKey);
+      summary.days += 1;
+    });
+  }
+
+  state.history = sortHistoryDescending(state.history);
+  save();
+  renderHome();
+  renderHistory();
+  return summary;
+}
+
+window.snaxDev = {
+  ...(window.snaxDev || {}),
+  populateHistory: populateRandomHistory,
+};
+
 async function init() {
-  renderFilterSection("advanced", "main", state.filters);
   attachChipHandlers();
   attachSizeHandlers();
   renderHome();
@@ -1656,8 +1827,8 @@ async function init() {
       renderLinkPanel();
     });
   });
-  $("close-link-btn").addEventListener("click", closeLinkPanel);
-  $("settings-btn").addEventListener("click", openSettings);
+  $("link-panel-close").addEventListener("click", () => closeLinkPanel());
+  $("link-sheet-scrim").addEventListener("click", () => closeLinkPanel());
   $("copy-link-btn").addEventListener("click", () => {
     copyLinkUrl().catch((error) => {
       state.linkError = error instanceof Error ? error.message : "Link could not be copied.";
@@ -1740,7 +1911,7 @@ async function init() {
   $("settings-intensity-select").addEventListener("change", (event) => {
     updateLibraryField(state.editingIndex, "intensity", event.target.value);
   });
-  $("settings-search-input").addEventListener("input", (event) => {
+  $("filter-search-input").addEventListener("input", (event) => {
     state.settingsFilters.query = event.target.value;
     renderSettings();
   });
@@ -1752,30 +1923,39 @@ async function init() {
     button.addEventListener("click", goHome);
   });
 
-  $("more-toggle").addEventListener("click", () => {
-    const advanced = $("advanced");
-    const isOpen = advanced.classList.toggle("open");
-    $("more-toggle").setAttribute("aria-expanded", String(isOpen));
-  });
+  window.addEventListener("scroll", syncFloatingBackButton, { passive: true });
 
-  $("today-panel").addEventListener("click", () => {
-    const entry = findHistoryEntry(state.history, todayKey());
-    if (entry && entry.snacks.length > 0) {
-      showDay(todayKey());
+  $("more-toggle").addEventListener("click", () => toggleFilterSheet("main"));
+  $("settings-filter-toggle").addEventListener("click", () => toggleFilterSheet("library"));
+  $("filter-panel-close").addEventListener("click", () => closeFilterSheet());
+  $("filter-sheet-scrim").addEventListener("click", () => closeFilterSheet());
+
+  $("bottom-toolbar").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target?.closest("[data-tab]");
+    if (!(button instanceof HTMLButtonElement)) return;
+
+    if (button.dataset.tab === "settings") {
+      openSettings();
+    } else if (button.dataset.tab === "home") {
+      goHome();
+    } else if (button.dataset.tab === "history") {
+      renderHistory();
+      showView("history");
     }
   });
 
-  $("archive-list").addEventListener("click", (event) => {
+  $("history-list").addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
-    const monthToggle = target ? target.closest(".archive-month-toggle") : null;
-    if (monthToggle && monthToggle.dataset.month) {
-      toggleArchiveMonth(monthToggle.dataset.month);
+    const monthButton = target?.closest("[data-history-month]");
+    if (monthButton instanceof HTMLButtonElement) {
+      toggleHistoryMonth(monthButton.dataset.historyMonth);
       return;
     }
 
-    const row = target ? target.closest(".archive-row.has-snacks") : null;
-    if (row && row.dataset.date) {
-      showDay(row.dataset.date);
+    const dayButton = target?.closest("[data-history-day]");
+    if (dayButton instanceof HTMLButtonElement) {
+      toggleHistoryDay(dayButton.dataset.historyDay);
     }
   });
 
@@ -1804,6 +1984,18 @@ async function init() {
   });
 
   document.addEventListener("keydown", (event) => {
+    if (state.filterSheetScope && event.key === "Escape") {
+      event.preventDefault();
+      closeFilterSheet();
+      return;
+    }
+
+    if (state.linkPanelOpen && event.key === "Escape") {
+      event.preventDefault();
+      closeLinkPanel();
+      return;
+    }
+
     if (state.pendingImport && event.key === "Escape") {
       event.preventDefault();
       closeImportDialog();

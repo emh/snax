@@ -11,7 +11,7 @@ export const INTENSITY_LABELS = {
 };
 export const DEFAULT_FILTERS = {
   size: 3,
-  intensity: "any",
+  intensities: [1, 2, 3],
   categories: [...CATEGORY_ORDER],
 };
 
@@ -236,7 +236,7 @@ export function filterExercises(library, filters) {
     if (exercise.deleted) return false;
     const isEnabled = exercise.enabled !== false;
     const matchesCategory = filters.categories.includes(exercise.category);
-    const matchesIntensity = filters.intensity === "any" || exercise.intensity === Number(filters.intensity);
+    const matchesIntensity = filters.intensities.includes(exercise.intensity);
     return isEnabled && matchesCategory && matchesIntensity;
   });
 }
@@ -262,14 +262,6 @@ export function getLoad(snacks) {
   return snacks.reduce((total, snack) => total + snack.intensity, 0);
 }
 
-export function summarizeEntries(entries) {
-  const snacks = entries.flatMap((entry) => entry.snacks);
-  return {
-    count: snacks.length,
-    load: getLoad(snacks),
-  };
-}
-
 export function formatLongDate(dateKey) {
   return new Intl.DateTimeFormat(undefined, {
     weekday: "long",
@@ -284,25 +276,6 @@ export function formatShortDate(dateKey) {
     month: "short",
     day: "numeric",
   }).format(fromDateKey(dateKey));
-}
-
-export function formatMonthDay(dateKey) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-  }).format(fromDateKey(dateKey));
-}
-
-export function formatDayTitle(dateKey) {
-  if (dateKey === todayKey()) {
-    return "today";
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: "long",
-  })
-    .format(fromDateKey(dateKey))
-    .toLowerCase();
 }
 
 export function formatTime(isoString) {
@@ -322,7 +295,10 @@ export function formatSizeLabel(size) {
 export function describeFilters(filters) {
   const flavour =
     filters.categories.length === CATEGORY_ORDER.length ? "all flavours" : filters.categories.join(" + ");
-  const heat = filters.intensity === "any" ? "any heat" : `${INTENSITY_LABELS[filters.intensity]} heat`;
+  const heat =
+    filters.intensities.length === Object.keys(INTENSITY_LABELS).length
+      ? "any heat"
+      : `${filters.intensities.map((intensity) => INTENSITY_LABELS[intensity]).join(" + ")} heat`;
   return `${flavour} / ${heat}`;
 }
 
