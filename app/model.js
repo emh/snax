@@ -156,8 +156,17 @@ export function hydrateSnack(snack) {
   return {
     id: String(source.id || ""),
     at: source.at ? String(source.at) : null,
-    stack: source.stack ? String(source.stack) : null,
     skipped: Boolean(source.skipped),
+  };
+}
+
+export function hydrateWorkout(workout) {
+  const source = workout || {};
+  return {
+    id: String(source.id || `r-${Date.now()}`),
+    at: source.at ? String(source.at) : null,
+    rounds: Math.max(1, Math.min(5, Number(source.rounds) || 1)),
+    exercises: Array.isArray(source.exercises) ? source.exercises.map((exercise) => hydrateSnack(exercise)) : [],
   };
 }
 
@@ -225,7 +234,7 @@ export function ensureHistoryEntry(history, dateKey) {
     return existing;
   }
 
-  const entry = { dateKey, snacks: [] };
+  const entry = { dateKey, workouts: [] };
   history.unshift(entry);
   history.sort((left, right) => right.dateKey.localeCompare(left.dateKey));
   return entry;
@@ -321,25 +330,4 @@ export function formatRunDuration(size) {
 
 export function formatTimerSeconds(seconds) {
   return seconds < 10 ? `0${seconds}` : String(seconds);
-}
-
-export function groupByStack(snacks) {
-  const sorted = snacks
-    .slice()
-    .sort((left, right) => String(left.at || "").localeCompare(String(right.at || "")));
-  const groups = [];
-  let current = null;
-
-  for (const snack of sorted) {
-    const key = snack.stack || snack.at || `single-${Math.random()}`;
-    if (!current || current.key !== key) {
-      current = { key, at: snack.at, snacks: [snack] };
-      groups.push(current);
-      continue;
-    }
-
-    current.snacks.push(snack);
-  }
-
-  return groups;
 }

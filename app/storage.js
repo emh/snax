@@ -1,4 +1,4 @@
-import { createDefaultLibrary, createSeedHistory, hydrateLibrary, hydrateSnack, sortHistoryDescending } from "./model.js";
+import { createDefaultLibrary, createSeedHistory, hydrateLibrary, hydrateSnack, hydrateWorkout, sortHistoryDescending } from "./model.js";
 
 const STORAGE_KEY = "snax.app-state.v4";
 const EMPTY_CLOCK = { wallTime: 0, counter: 0 };
@@ -20,10 +20,24 @@ function normalizeHistory(history) {
 
   const normalized = history
     .filter((entry) => entry && typeof entry === "object")
-    .map((entry) => ({
-      dateKey: String(entry.dateKey || entry.date || ""),
-      snacks: Array.isArray(entry.snacks) ? entry.snacks.map((snack) => hydrateSnack(snack)) : [],
-    }))
+    .map((entry) => {
+      const legacySnacks = Array.isArray(entry.snacks) ? entry.snacks.map((snack) => ({ ...hydrateSnack(snack), stack: snack?.stack })) : [];
+      const legacyWorkouts = [];
+      legacySnacks.forEach((snack) => {
+        const id = String(snack.stack || snack.at || `legacy-${legacyWorkouts.length}`);
+        let workout = legacyWorkouts.find((item) => item.id === id);
+        if (!workout) {
+          workout = { id, at: snack.at, rounds: Math.max(1, Math.min(5, Number(entry.snacks?.find((item) => item?.stack === snack.stack)?.rounds) || 1)), exercises: [] };
+          legacyWorkouts.push(workout);
+        }
+        const { stack, ...exercise } = snack;
+        workout.exercises.push(exercise);
+      });
+      return {
+        dateKey: String(entry.dateKey || entry.date || ""),
+        workouts: Array.isArray(entry.workouts) ? entry.workouts.map((workout) => hydrateWorkout(workout)) : legacyWorkouts,
+      };
+    })
     .filter((entry) => entry.dateKey);
 
   return normalized.length > 0 ? sortHistoryDescending(normalized) : createSeedHistory();

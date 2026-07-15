@@ -442,6 +442,7 @@ body.cancel-sheet-open {
 .done-stats,
 .preview-sub,
 .timer-step,
+.timer-round,
 .timer-btn,
 .timer-category,
 .rest-label {
@@ -828,6 +829,10 @@ body.cancel-sheet-open {
 
 .preview-list {
   margin-top: 28px;
+}
+
+.preview-rounds {
+  margin-top: 22px;
 }
 
 .preview-item,
@@ -1433,7 +1438,15 @@ body.settings-overlay-open {
   gap: 16px;
 }
 
+.timer-position {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
 .timer-step,
+.timer-round,
 .timer-btn,
 .timer-category,
 .rest-label {
@@ -1442,6 +1455,7 @@ body.settings-overlay-open {
 }
 
 .timer-step,
+.timer-round,
 .timer-category {
   color: var(--ink-mid);
   font-size: 10.5px;
@@ -1562,7 +1576,8 @@ body.settings-overlay-open {
   text-decoration: line-through;
 }
 
-.timer-bottom {
+.timer-bottom,
+.rest-bottom {
   display: flex;
   justify-content: center;
   gap: 30px;
@@ -1604,11 +1619,6 @@ body.settings-overlay-open {
   align-self: stretch;
   display: flex;
   justify-content: flex-end;
-}
-
-.rest-bottom {
-  display: flex;
-  justify-content: center;
 }
 
 .rest-label {
@@ -1686,6 +1696,13 @@ body.settings-overlay-open {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.day-group-rounds {
+  margin-top: 8px;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
 }
 
 .day-snack {
@@ -1895,7 +1912,8 @@ body.settings-overlay-open {
   }
 
   .preview-actions,
-  .timer-bottom {
+  .timer-bottom,
+  .rest-bottom {
     gap: 18px;
   }
 

@@ -15,9 +15,9 @@ import {
   formatTime,
   formatTimerSeconds,
   getLoad,
-  groupByStack,
   hydrateExercise,
   hydrateSnack,
+  hydrateWorkout,
   pickStack,
   resolveSnacks,
   sortHistoryDescending,
@@ -40,7 +40,9 @@ const state = {
   expandedHistoryMonths: new Set(),
   expandedHistoryDays: new Set(),
   animatedHistoryDays: new Set(),
+  baseStack: [],
   stack: [],
+  rounds: 1,
   runIdx: 0,
   secondsLeft: SNACK_DURATION,
   snackEndTime: 0,
@@ -76,7 +78,7 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
-const EXPORT_SCHEMA = "snax.history.v1";
+const EXPORT_SCHEMA = "snax.history.v2";
 const TIMER_WAKE_LOCK_TYPE = "screen";
 
 let toastTimer;
@@ -295,7 +297,18 @@ function todayEntry() {
 }
 
 function resolveEntrySnacks(entry) {
-  return entry ? resolveSnacks(entry.snacks, state.library).filter((snack) => !snack.skipped) : [];
+  return entry
+    ? resolveSnacks(entry.workouts.flatMap((workout) => workout.exercises), state.library).filter((snack) => !snack.skipped)
+    : [];
+}
+
+function resolveEntryWorkouts(entry) {
+  return (entry?.workouts || [])
+    .map((workout) => ({
+      ...workout,
+      exercises: resolveSnacks(workout.exercises, state.library).filter((exercise) => !exercise.skipped),
+    }))
+    .filter((workout) => workout.exercises.length > 0);
 }
 
 function renderSparkBars(snacks, variant, emptyLabel, animate = true) {
@@ -401,17 +414,19 @@ function renderToday() {
   const snacks = resolveEntrySnacks(entry);
   $("today-meta").textContent = formatMetaText(snacks);
   $("today-spark").innerHTML = renderSparkBars(snacks, "today", "quiet so far");
-  $("today-sessions").innerHTML = renderSessionGroups(snacks);
+  $("today-sessions").innerHTML = renderSessionGroups(resolveEntryWorkouts(entry));
 }
 
-function renderSessionGroups(snacks) {
-  return groupByStack(snacks.filter((snack) => !snack.skipped))
-    .map(
-      (group) => `
+function renderSessionGroups(workouts) {
+  return workouts
+    .slice()
+    .sort((left, right) => String(left.at || "").localeCompare(String(right.at || "")))
+    .map((workout) => {
+      return `
         <div class="day-group">
-          <div class="day-group-time">${group.at ? esc(formatTime(group.at)) : "--"}</div>
+          <div class="day-group-time">${workout.at ? esc(formatTime(workout.at)) : "--"}</div>
           <div class="day-group-snacks">
-            ${group.snacks
+            ${workout.exercises
               .map(
                 (snack) => `
                   <div class="day-snack">
@@ -421,10 +436,11 @@ function renderSessionGroups(snacks) {
                 `,
               )
               .join("")}
+            ${workout.rounds > 1 ? `<div class="day-group-rounds">${workout.rounds} rounds</div>` : ""}
           </div>
         </div>
-      `,
-    )
+      `;
+    })
     .join("");
 }
 
@@ -453,7 +469,7 @@ function getHistoryMonthGroups() {
         byMonth.set(monthKey, group);
         groups.push(group);
       }
-      group.entries.push({ dateKey: entry.dateKey, snacks });
+      group.entries.push({ dateKey: entry.dateKey, snacks, workouts: resolveEntryWorkouts(entry) });
     });
 
   return groups;
@@ -487,7 +503,7 @@ function renderHistory() {
                           <span class="archive-spark">${renderSparkBars(entry.snacks, "archive", "", animateSpark)}</span>
                           <span class="archive-meta">${entry.snacks.length} snacks / load ${getLoad(entry.snacks)}</span>
                         </button>
-                        <div class="history-day-details" ${dayOpen ? "" : "hidden"}>${renderSessionGroups(entry.snacks)}</div>
+                        <div class="history-day-details" ${dayOpen ? "" : "hidden"}>${renderSessionGroups(entry.workouts)}</div>
                       </article>
                     `;
                   })
@@ -600,15 +616,27 @@ function shakeJar() {
     return;
   }
 
-  state.stack = pickStack(pool, state.filters.size);
+  state.baseStack = pickStack(pool, state.filters.size);
+  state.stack = [...state.baseStack];
+  state.rounds = 1;
   renderPreview();
   showView("preview");
 }
 
+function rebuildWorkoutStack() {
+  state.stack = Array.from({ length: state.rounds }, () => state.baseStack).flat();
+}
+
 function renderPreview() {
-  $("preview-title").textContent = formatStackLabel(state.stack.length);
+  $("preview-title").textContent = formatStackLabel(state.baseStack.length);
   $("preview-sub").textContent = describeFilters(state.filters);
-  $("preview-list").innerHTML = state.stack
+  $("preview-rounds-options").innerHTML = [1, 2, 3, 4, 5]
+    .map(
+      (rounds) =>
+        `<button class="chip ${state.rounds === rounds ? "active" : ""}" data-rounds="${rounds}" type="button" aria-pressed="${state.rounds === rounds}">${rounds}</button>`,
+    )
+    .join("");
+  $("preview-list").innerHTML = state.baseStack
     .map(
       (exercise, index) => `
         <article class="preview-item">
@@ -637,11 +665,12 @@ function renderPreview() {
 }
 
 function retryPreviewExercise(index) {
-  const currentExercise = state.stack[index];
+  const baseIndex = index % state.baseStack.length;
+  const currentExercise = state.baseStack[baseIndex];
   if (!currentExercise) return;
 
   const pool = filterExercises(state.library, state.filters);
-  const usedIds = new Set(state.stack.map((exercise) => exercise.id));
+  const usedIds = new Set(state.baseStack.map((exercise) => exercise.id));
   const unusedCandidates = pool.filter((exercise) => !usedIds.has(exercise.id));
   const candidates = unusedCandidates.length
     ? unusedCandidates
@@ -652,7 +681,14 @@ function retryPreviewExercise(index) {
     return;
   }
 
-  state.stack[index] = pickStack(candidates, 1)[0];
+  state.baseStack[baseIndex] = pickStack(candidates, 1)[0];
+  state.stack = [...state.baseStack];
+  renderPreview();
+}
+
+function setWorkoutRounds(rounds) {
+  if (!Number.isInteger(rounds) || rounds < 1 || rounds > 5) return;
+  state.rounds = rounds;
   renderPreview();
 }
 
@@ -934,17 +970,20 @@ function runSingleSnack(index) {
   if (!exercise) {
     return;
   }
-  state.stack = [exercise];
+  state.baseStack = [exercise];
+  state.stack = [...state.baseStack];
+  state.rounds = 1;
   beginRun();
 }
 
 function beginRun() {
-  if (state.stack.length === 0) {
+  if (state.baseStack.length === 0) {
     toast("shake the jar first");
     return;
   }
 
   initAudio();
+  rebuildWorkoutStack();
   state.runIdx = 0;
   state.completed = [];
   state.paused = false;
@@ -961,7 +1000,11 @@ function startSnack() {
     return;
   }
 
-  $("timer-step").textContent = `snack ${state.runIdx + 1} / ${state.stack.length}`;
+  const snackIndex = (state.runIdx % state.baseStack.length) + 1;
+  const roundIndex = Math.floor(state.runIdx / state.baseStack.length) + 1;
+  $("timer-step").textContent = `snack ${snackIndex} / ${state.baseStack.length}`;
+  $("timer-round").textContent = `round ${roundIndex} / ${state.rounds}`;
+  $("timer-round").hidden = state.rounds <= 1;
   $("timer-category").textContent = snack.category;
   $("timer-category").className = `timer-category cat-${snack.category}`;
   $("timer-name").textContent = snack.name;
@@ -1001,7 +1044,6 @@ function completeCurrentSnack(skipped) {
   state.completed.push({
     id: state.stack[state.runIdx].id,
     at: new Date().toISOString(),
-    stack: state.currentStackId,
     skipped,
   });
 
@@ -1046,12 +1088,20 @@ function startRest() {
   }, 1000);
 }
 
+function skipRest() {
+  clearInterval(state.restHandle);
+  showView("run");
+  startSnack();
+}
+
 function renderTimerStack(targetId) {
-  $(targetId).innerHTML = state.stack
+  const currentIndex = state.runIdx % state.baseStack.length;
+  const roundStart = state.runIdx - currentIndex;
+  $(targetId).innerHTML = state.baseStack
     .map((snack, index) => ({ snack, index }))
-    .filter(({ index }) => !(index < state.runIdx && state.completed[index]?.skipped))
+    .filter(({ index }) => !(index < currentIndex && state.completed[roundStart + index]?.skipped))
     .map(({ snack, index }) => {
-      const cls = index < state.runIdx ? "is-done" : index === state.runIdx ? "is-current" : "";
+      const cls = index < currentIndex ? "is-done" : index === currentIndex ? "is-current" : "";
       return `<li class="timer-stack-item${cls ? ` ${cls}` : ""}">${esc(snack.name)}</li>`;
     })
     .join("");
@@ -1059,7 +1109,12 @@ function renderTimerStack(targetId) {
 
 function finishRun() {
   const entry = todayEntry();
-  entry.snacks.push(...state.completed);
+  entry.workouts.push({
+    id: state.currentStackId,
+    at: state.completed[0]?.at || new Date().toISOString(),
+    rounds: state.rounds,
+    exercises: state.completed.map((exercise) => ({ ...exercise })),
+  });
   save();
   renderDone();
   showView("done");
@@ -1524,22 +1579,39 @@ function hydrateImportedHistory(history) {
         return;
       }
 
-      const existing = entriesByDate.get(dateKey) || { dateKey, snacks: [] };
-      const existingSnackKeys = new Set(existing.snacks.map((snack) => snackImportKey(snack)));
-      const snacks = Array.isArray(entry.snacks) ? entry.snacks.map((snack) => hydrateSnack(snack)) : [];
-      snacks.forEach((snack) => {
-        const key = snackImportKey(snack);
-        if (existingSnackKeys.has(key)) {
-          return;
-        }
-
-        existing.snacks.push(snack);
-        existingSnackKeys.add(key);
+      const existing = entriesByDate.get(dateKey) || { dateKey, workouts: [] };
+      const workouts = Array.isArray(entry.workouts)
+        ? entry.workouts.map((workout) => hydrateWorkout(workout))
+        : legacySnacksToWorkouts(entry.snacks);
+      const existingIds = new Set(existing.workouts.map((workout) => workout.id));
+      workouts.forEach((workout) => {
+        if (existingIds.has(workout.id)) return;
+        existing.workouts.push(workout);
+        existingIds.add(workout.id);
       });
       entriesByDate.set(dateKey, existing);
     });
 
   return sortHistoryDescending([...entriesByDate.values()]);
+}
+
+function legacySnacksToWorkouts(snacks) {
+  const workouts = [];
+  (Array.isArray(snacks) ? snacks : []).forEach((source) => {
+    const id = String(source?.stack || source?.at || `legacy-${workouts.length}`);
+    let workout = workouts.find((item) => item.id === id);
+    if (!workout) {
+      workout = {
+        id,
+        at: source?.at ? String(source.at) : null,
+        rounds: Math.max(1, Math.min(5, Number(source?.rounds) || 1)),
+        exercises: [],
+      };
+      workouts.push(workout);
+    }
+    workout.exercises.push(hydrateSnack(source));
+  });
+  return workouts;
 }
 
 function hydrateImportedLibrary(library) {
@@ -1791,16 +1863,15 @@ function overwriteImportedLibrary(importedLibrary) {
   return { added: library.length, importIdMap, library, localIdMap };
 }
 
-function snackImportKey(snack) {
-  return [snack.id, snack.at || "", snack.stack || "", snack.skipped ? "1" : "0"].join("|");
-}
-
 function remapHistoryEntries(history, idMap) {
   return history.map((entry) => ({
     dateKey: entry.dateKey,
-    snacks: entry.snacks.map((snack) => ({
-      ...snack,
-      id: idMap.get(snack.id) || snack.id,
+    workouts: entry.workouts.map((workout) => ({
+      ...workout,
+      exercises: workout.exercises.map((exercise) => ({
+        ...exercise,
+        id: idMap.get(exercise.id) || exercise.id,
+      })),
     })),
   }));
 }
@@ -1809,7 +1880,10 @@ function overwriteImportedHistory(importedHistory) {
   return {
     history: sortHistoryDescending(importedHistory),
     addedDays: importedHistory.length,
-    addedSnacks: importedHistory.reduce((total, entry) => total + entry.snacks.length, 0),
+    addedSnacks: importedHistory.reduce(
+      (total, entry) => total + entry.workouts.reduce((sum, workout) => sum + workout.exercises.length, 0),
+      0,
+    ),
   };
 }
 
@@ -1819,7 +1893,10 @@ function mergeImportedHistory(baseHistory, importedHistory) {
       entry.dateKey,
       {
         dateKey: entry.dateKey,
-        snacks: entry.snacks.map((snack) => ({ ...snack })),
+        workouts: entry.workouts.map((workout) => ({
+          ...workout,
+          exercises: workout.exercises.map((exercise) => ({ ...exercise })),
+        })),
       },
     ]),
   );
@@ -1829,21 +1906,20 @@ function mergeImportedHistory(baseHistory, importedHistory) {
   importedHistory.forEach((importedEntry) => {
     let entry = entriesByDate.get(importedEntry.dateKey);
     if (!entry) {
-      entry = { dateKey: importedEntry.dateKey, snacks: [] };
+      entry = { dateKey: importedEntry.dateKey, workouts: [] };
       entriesByDate.set(importedEntry.dateKey, entry);
       addedDays += 1;
     }
 
-    const existingSnackKeys = new Set(entry.snacks.map((snack) => snackImportKey(snack)));
-    importedEntry.snacks.forEach((snack) => {
-      const key = snackImportKey(snack);
-      if (existingSnackKeys.has(key)) {
-        return;
-      }
-
-      entry.snacks.push({ ...snack });
-      existingSnackKeys.add(key);
-      addedSnacks += 1;
+    const existingWorkoutIds = new Set(entry.workouts.map((workout) => workout.id));
+    importedEntry.workouts.forEach((workout) => {
+      if (existingWorkoutIds.has(workout.id)) return;
+      entry.workouts.push({
+        ...workout,
+        exercises: workout.exercises.map((exercise) => ({ ...exercise })),
+      });
+      existingWorkoutIds.add(workout.id);
+      addedSnacks += workout.exercises.length;
     });
   });
 
@@ -1900,14 +1976,16 @@ function populateRandomHistory() {
         const sessionSize = [1, 3, 5][randomInt(0, 2)];
         const exercises = pickStack(pool, Math.min(sessionSize, pool.length));
 
-        entry.snacks.push(
-          ...exercises.map((exercise) => ({
+        entry.workouts.push({
+          id: stack,
+          at,
+          rounds: 1,
+          exercises: exercises.map((exercise) => ({
             id: exercise.id,
             at,
-            stack,
             skipped: Math.random() < 0.06,
           })),
-        );
+        });
         summary.sessions += 1;
         summary.snacks += exercises.length;
       }
@@ -1975,8 +2053,15 @@ async function init() {
     if (!(retryButton instanceof HTMLButtonElement)) return;
     retryPreviewExercise(Number(retryButton.dataset.index));
   });
+  $("preview-rounds-options").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target?.closest("[data-rounds]");
+    if (!(button instanceof HTMLButtonElement)) return;
+    setWorkoutRounds(Number(button.dataset.rounds));
+  });
   $("btn-pause").addEventListener("click", togglePause);
   $("rest-btn-pause").addEventListener("click", togglePause);
+  $("rest-btn-skip").addEventListener("click", skipRest);
   $("btn-skip").addEventListener("click", skipSnack);
   $("timer-quit").addEventListener("click", openCancelPanel);
   $("rest-cancel").addEventListener("click", openCancelPanel);
