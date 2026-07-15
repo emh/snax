@@ -1,19 +1,25 @@
 :root {
-  --paper: #fffdf7;
-  --paper-shade: #f7f1e4;
-  --ink: #151311;
-  --ink-mid: #5c5851;
-  --ink-light: #8b8478;
-  --ink-faint: #cfc5b7;
-  --rule: rgba(33, 22, 10, 0.12);
-  --red: #8f1d12;
-  --red-light: #aa3522;
-  --cardio: #d55e00;
-  --strength: #0072b2;
-  --core: #a64d79;
-  --mobility: #009e73;
-  --restore: #9a7a00;
-  --shadow: 0 20px 60px rgba(40, 30, 20, 0.08);
+  --paper: #f7f7f5;
+  --paper-shade: #ececea;
+  --ink: #171717;
+  --ink-mid: #5e5e5a;
+  --ink-light: #888884;
+  --ink-faint: #c8c8c3;
+  --rule: rgba(0, 0, 0, 0.12);
+  --red: #242424;
+  --red-light: #505050;
+  --flavour-blue: #0072b2;
+  --flavour-vermillion: #d55e00;
+  --flavour-green: #009e73;
+  --flavour-purple: #cc79a7;
+  --flavour-orange: #e69f00;
+  --flavour-sky: #56b4e9;
+  --cardio: var(--flavour-vermillion);
+  --strength: var(--flavour-blue);
+  --core: var(--flavour-purple);
+  --mobility: var(--flavour-green);
+  --restore: var(--flavour-orange);
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
   --font-main: "Atkinson Hyperlegible Next", system-ui, sans-serif;
   --font-mono: "Atkinson Hyperlegible Mono", "SF Mono", "Menlo", monospace;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -38,9 +44,9 @@ body {
   overflow-x: hidden;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(143, 29, 18, 0.06), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(62, 96, 124, 0.05), transparent 32%),
-    linear-gradient(180deg, #fffefb 0%, var(--paper) 55%, var(--paper-shade) 100%);
+    radial-gradient(circle at top left, rgba(0, 0, 0, 0.035), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(0, 0, 0, 0.025), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, var(--paper) 55%, var(--paper-shade) 100%);
   font-family: var(--font-main);
 }
 
@@ -78,10 +84,10 @@ button {
   gap: 4px;
   padding: 7px;
   transform: translateX(-50%);
-  border: 1px solid rgba(33, 22, 10, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 22px;
-  background: rgba(255, 253, 247, 0.82);
-  box-shadow: 0 10px 36px rgba(40, 30, 20, 0.16);
+  background: rgba(247, 247, 245, 0.86);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.16);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
 }
@@ -107,7 +113,7 @@ button {
 
 .toolbar-button.active {
   color: var(--red);
-  background: rgba(143, 29, 18, 0.09);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .bottom-sheet {
@@ -130,7 +136,7 @@ button {
   inset: 0;
   width: 100%;
   height: 100%;
-  background: rgba(21, 19, 17, 0.24);
+  background: rgba(0, 0, 0, 0.24);
   opacity: 0;
   transition: opacity 300ms var(--ease);
 }
@@ -145,11 +151,11 @@ button {
   margin: 0 auto;
   overflow-y: auto;
   padding: 18px 24px calc(28px + var(--safe-bottom));
-  border: 1px solid rgba(33, 22, 10, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-bottom: 0;
   border-radius: 28px 28px 0 0;
-  background: rgba(255, 253, 247, 0.97);
-  box-shadow: 0 -16px 48px rgba(40, 30, 20, 0.16);
+  background: rgba(247, 247, 245, 0.97);
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.16);
   transform: translateY(110%);
   transition: transform 300ms var(--ease);
   backdrop-filter: blur(24px) saturate(1.25);
@@ -271,10 +277,10 @@ body.cancel-sheet-open {
   top: calc(12px + var(--safe-top));
   right: 14px;
   justify-content: center;
-  border: 1px solid rgba(21, 19, 17, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
-  background: rgba(255, 253, 247, 0.82);
-  box-shadow: 0 8px 28px rgba(21, 19, 17, 0.14);
+  background: rgba(247, 247, 245, 0.86);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   animation: back-button-lift 220ms var(--ease) both;
@@ -579,11 +585,11 @@ body.cancel-sheet-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(33, 22, 10, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 999px;
-  background: #ecd7c7;
+  background: var(--flavour-sky);
   box-shadow:
-    0 10px 24px rgba(40, 30, 20, 0.08),
+    0 10px 24px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.38);
   color: var(--ink);
   font-family: var(--font-main);
@@ -601,24 +607,28 @@ body.cancel-sheet-open {
 }
 
 .size-bubble[data-size="1"] {
-  background: #d7e7df;
+  background: var(--flavour-sky);
 }
 
 .size-bubble[data-size="3"] {
   width: 70px;
   height: 70px;
-  background: #e7d2a5;
+  background: var(--flavour-orange);
+  border-color: rgba(0, 0, 0, 0.34);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
   font-size: 28px;
 }
 
 .size-bubble[data-size="5"] {
-  background: #d9dde9;
+  background: var(--flavour-purple);
 }
 
 .size-bubble:hover {
-  border-color: rgba(33, 22, 10, 0.24);
+  border-color: rgba(0, 0, 0, 0.32);
   box-shadow:
-    0 14px 30px rgba(40, 30, 20, 0.12),
+    0 14px 30px rgba(0, 0, 0, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.44);
   transform: translateY(-1px);
 }
@@ -838,10 +848,10 @@ body.cancel-sheet-open {
   padding: 0;
   margin: 0;
   color: var(--ink);
-  background: rgba(255, 253, 247, 0.82);
-  border: 1px solid rgba(21, 19, 17, 0.1);
+  background: rgba(247, 247, 245, 0.86);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
-  box-shadow: 0 8px 28px rgba(21, 19, 17, 0.14);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   animation: back-button-lift 220ms var(--ease) both;
@@ -1032,10 +1042,10 @@ body.cancel-sheet-open {
   height: 44px;
   gap: 2px;
   padding: 0 3px;
-  border: 1px solid rgba(21, 19, 17, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 22px;
-  background: rgba(255, 253, 247, 0.82);
-  box-shadow: 0 8px 28px rgba(21, 19, 17, 0.14);
+  background: rgba(247, 247, 245, 0.86);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   animation: back-button-lift 220ms var(--ease) both;
@@ -1294,8 +1304,8 @@ body.cancel-sheet-open {
   overflow: auto;
   padding: 22px 22px 28px;
   background:
-    radial-gradient(circle at top right, rgba(143, 29, 18, 0.04), transparent 32%),
-    linear-gradient(180deg, #fffefb 0%, var(--paper) 100%);
+    radial-gradient(circle at top right, rgba(0, 0, 0, 0.03), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, var(--paper) 100%);
   border: 1px solid var(--rule);
   box-shadow: var(--shadow);
 }
@@ -1878,7 +1888,7 @@ body.settings-overlay-open {
   transform: translate(-50%, 16px);
   padding: 9px 18px;
   color: var(--ink);
-  background: rgba(255, 253, 247, 0.92);
+  background: rgba(247, 247, 245, 0.94);
   border: 1px solid var(--rule);
   box-shadow: var(--shadow);
   font-family: var(--font-mono);
