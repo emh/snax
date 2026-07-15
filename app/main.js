@@ -58,10 +58,15 @@ const state = {
   sync: loadedState.sync,
   syncStatus: loadedState.sync.code ? "synced" : "local",
   linkPanelOpen: false,
+  adminPanelOpen: false,
+  cancelPanelOpen: false,
+  cancelWasPaused: false,
   linkBusy: false,
   linkError: "",
   linkCodeInput: "",
   editingIndex: null,
+  editingIsNew: false,
+  editingDraft: null,
   currentView: "home",
   pendingImport: null,
   importModes: {
@@ -81,6 +86,9 @@ let timerWakeLockRequest = null;
 let audioCtx = null;
 let filterSheetTimer = null;
 let linkPanelTimer = null;
+let adminPanelTimer = null;
+let editorPanelTimer = null;
+let cancelPanelTimer = null;
 
 function initAudio() {
   if (!audioCtx) {
@@ -165,6 +173,12 @@ function showView(name) {
   if (state.linkPanelOpen && name !== "home") {
     closeLinkPanel(true);
   }
+  if (state.adminPanelOpen && name !== "settings") {
+    closeAdminPanel(true);
+  }
+  if (state.cancelPanelOpen && !["run", "rest"].includes(name)) {
+    closeCancelPanel(true, false);
+  }
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
   $(`view-${name}`).classList.add("active");
   state.currentView = name;
@@ -177,11 +191,21 @@ function showView(name) {
 }
 
 function syncFloatingBackButton() {
+  const scrolled = window.scrollY > 40;
   document.querySelectorAll('.back-btn[data-action="home"]').forEach((button) => {
-    const shouldFloat = button.closest(".view.active") && window.scrollY > 40;
+    const shouldFloat = button.closest(".view.active") && scrolled;
     button.classList.toggle("back-btn-floating", Boolean(shouldFloat));
     button.closest(".preview-header")?.classList.toggle("has-floating-back", Boolean(shouldFloat));
   });
+
+  $("link-btn").classList.toggle(
+    "header-action-floating",
+    Boolean($("view-home").classList.contains("active") && scrolled),
+  );
+  document.querySelector(".library-header-actions")?.classList.toggle(
+    "header-actions-floating",
+    Boolean($("view-settings").classList.contains("active") && scrolled),
+  );
 }
 
 function renderBottomToolbar() {
@@ -271,7 +295,7 @@ function todayEntry() {
 }
 
 function resolveEntrySnacks(entry) {
-  return entry ? resolveSnacks(entry.snacks, state.library) : [];
+  return entry ? resolveSnacks(entry.snacks, state.library).filter((snack) => !snack.skipped) : [];
 }
 
 function renderSparkBars(snacks, variant, emptyLabel, animate = true) {
@@ -381,7 +405,7 @@ function renderToday() {
 }
 
 function renderSessionGroups(snacks) {
-  return groupByStack(snacks)
+  return groupByStack(snacks.filter((snack) => !snack.skipped))
     .map(
       (group) => `
         <div class="day-group">
@@ -392,7 +416,7 @@ function renderSessionGroups(snacks) {
                 (snack) => `
                   <div class="day-snack">
                     <span class="day-bar cat-${esc(snack.category)}" data-intensity="${snack.intensity}"></span>
-                    <span class="day-snack-name">${esc(snack.name)}${snack.skipped ? '<span class="skipped-tag"> skipped</span>' : ""}</span>
+                    <span class="day-snack-name">${esc(snack.name)}</span>
                   </div>
                 `,
               )
@@ -419,9 +443,9 @@ function getHistoryMonthGroups() {
   const groups = [];
   const byMonth = new Map();
 
-  sortHistoryDescending(state.history)
-    .filter((entry) => entry.snacks.length > 0)
-    .forEach((entry) => {
+  sortHistoryDescending(state.history).forEach((entry) => {
+      const snacks = resolveEntrySnacks(entry);
+      if (snacks.length === 0) return;
       const monthKey = historyMonthKey(entry.dateKey);
       let group = byMonth.get(monthKey);
       if (!group) {
@@ -429,7 +453,7 @@ function getHistoryMonthGroups() {
         byMonth.set(monthKey, group);
         groups.push(group);
       }
-      group.entries.push({ dateKey: entry.dateKey, snacks: resolveEntrySnacks(entry) });
+      group.entries.push({ dateKey: entry.dateKey, snacks });
     });
 
   return groups;
@@ -529,6 +553,8 @@ function applyRemoteSnapshot(snapshot, version) {
   state.history = hydrated.history;
   state.library = hydrated.library;
   state.editingIndex = null;
+  state.editingIsNew = false;
+  state.editingDraft = null;
   state.clock = observeClock(state.clock, version);
   state.sync.stateVersion = version || state.sync.stateVersion;
   persistRemoteState();
@@ -671,6 +697,7 @@ function renderFilterSheet() {
 
 function openFilterSheet(scope) {
   if (state.linkPanelOpen) closeLinkPanel(true);
+  if (state.adminPanelOpen) closeAdminPanel(true);
   window.clearTimeout(filterSheetTimer);
   state.filterSheetScope = scope;
   renderFilterSheet();
@@ -711,9 +738,82 @@ function toggleFilterSheet(scope) {
   openFilterSheet(scope);
 }
 
+function openAdminPanel() {
+  if (state.filterSheetScope) closeFilterSheet(true);
+  window.clearTimeout(adminPanelTimer);
+  state.adminPanelOpen = true;
+  const panel = $("admin-sheet");
+  panel.hidden = false;
+  document.body.classList.add("admin-sheet-open");
+  $("admin-toggle").setAttribute("aria-expanded", "true");
+  window.requestAnimationFrame(() => panel.classList.add("open"));
+}
+
+function closeAdminPanel(immediate = false) {
+  const panel = $("admin-sheet");
+  window.clearTimeout(adminPanelTimer);
+  state.adminPanelOpen = false;
+  panel.classList.remove("open");
+  document.body.classList.remove("admin-sheet-open");
+  $("admin-toggle").setAttribute("aria-expanded", "false");
+
+  if (immediate) {
+    panel.hidden = true;
+    return;
+  }
+
+  adminPanelTimer = window.setTimeout(() => {
+    panel.hidden = true;
+  }, 300);
+}
+
+function toggleAdminPanel() {
+  if (state.adminPanelOpen && $("admin-sheet").classList.contains("open")) {
+    closeAdminPanel();
+  } else {
+    openAdminPanel();
+  }
+}
+
+function openCancelPanel() {
+  window.clearTimeout(cancelPanelTimer);
+  state.cancelWasPaused = state.paused;
+  if (!state.paused) togglePause();
+  state.cancelPanelOpen = true;
+  $("cancel-warning").textContent = "The workout will be cancelled and not recorded";
+  const sheet = $("cancel-sheet");
+  sheet.hidden = false;
+  document.body.classList.add("cancel-sheet-open");
+  window.requestAnimationFrame(() => sheet.classList.add("open"));
+}
+
+function closeCancelPanel(immediate = false, resume = true) {
+  const sheet = $("cancel-sheet");
+  window.clearTimeout(cancelPanelTimer);
+  sheet.classList.remove("open");
+  document.body.classList.remove("cancel-sheet-open");
+  state.cancelPanelOpen = false;
+
+  if (resume && !state.cancelWasPaused && state.paused) togglePause();
+  state.cancelWasPaused = false;
+
+  if (immediate) {
+    sheet.hidden = true;
+    return;
+  }
+
+  cancelPanelTimer = window.setTimeout(() => {
+    sheet.hidden = true;
+  }, 300);
+}
+
+function confirmCancelWorkout() {
+  closeCancelPanel(true, false);
+  quitRun();
+}
+
 function renderSettings() {
   const visibleSnacks = getVisibleLibrarySnacks();
-  const visibleEnabledCount = visibleSnacks.filter(({ exercise }) => exercise.enabled !== false).length;
   const hasActiveFilters =
     state.settingsFilters.categories.length !== CATEGORY_ORDER.length ||
     state.settingsFilters.intensities.length !== 3 ||
@@ -721,11 +821,6 @@ function renderSettings() {
 
   const totalActive = state.library.filter((exercise) => !exercise.deleted).length;
   $("settings-count").textContent = formatSettingsCount(visibleSnacks.length, totalActive, hasActiveFilters);
-  $("settings-visible-toggle").checked = visibleSnacks.length > 0 && visibleEnabledCount === visibleSnacks.length;
-  $("settings-visible-toggle").indeterminate =
-    visibleEnabledCount > 0 && visibleEnabledCount < visibleSnacks.length;
-  $("settings-visible-toggle").disabled = visibleSnacks.length === 0;
-
   $("settings-list").innerHTML =
     visibleSnacks.length === 0
       ? `<p class="settings-empty">no snacks match those filters</p>`
@@ -749,15 +844,17 @@ function renderSettings() {
                   data-action="run-single-snack"
                   data-index="${index}"
                   type="button"
-                >go</button>
-                <label class="settings-enabled-toggle">
-                  <input
-                    data-action="toggle-snack-enabled"
-                    data-index="${index}"
-                    type="checkbox"
-                    ${exercise.enabled === false ? "" : "checked"}
-                  />
-                </label>
+                  aria-label="play ${esc(exercise.name || "exercise") }"
+                >
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path>
+                  </svg>
+                </button>
+                <button class="settings-enabled-toggle" data-action="toggle-snack-enabled" data-index="${index}" type="button" aria-label="${exercise.enabled === false ? "enable" : "disable"} ${esc(exercise.name || "exercise")}" aria-pressed="${exercise.enabled !== false}">
+                  ${exercise.enabled === false
+                    ? '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="3"></circle><rect width="20" height="14" x="2" y="5" rx="7"></rect></svg>'
+                    : '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="12" r="3"></circle><rect width="20" height="14" x="2" y="5" rx="7"></rect></svg>'}
+                </button>
               </article>
             `,
           )
@@ -767,13 +864,16 @@ function renderSettings() {
 function getVisibleLibrarySnacks() {
   const query = state.settingsFilters.query.trim().toLowerCase();
 
-  return state.library.map((exercise, index) => ({ exercise, index })).filter(({ exercise }) => {
-    if (exercise.deleted) return false;
-    const matchesCategory = state.settingsFilters.categories.includes(exercise.category);
-    const matchesIntensity = state.settingsFilters.intensities.includes(exercise.intensity);
-    const matchesQuery = !query || exercise.name.toLowerCase().includes(query);
-    return matchesCategory && matchesIntensity && matchesQuery;
-  });
+  return state.library
+    .map((exercise, index) => ({ exercise, index }))
+    .filter(({ exercise }) => {
+      if (exercise.deleted) return false;
+      const matchesCategory = state.settingsFilters.categories.includes(exercise.category);
+      const matchesIntensity = state.settingsFilters.intensities.includes(exercise.intensity);
+      const matchesQuery = !query || exercise.name.toLowerCase().includes(query);
+      return matchesCategory && matchesIntensity && matchesQuery;
+    })
+    .reverse();
 }
 
 function formatSettingsCount(visibleCount, totalCount, isFiltered) {
@@ -787,25 +887,46 @@ function formatSettingsCount(visibleCount, totalCount, isFiltered) {
 
 function renderSettingsEditor() {
   const overlay = $("settings-overlay");
-  const exercise = state.editingIndex == null ? null : state.library[state.editingIndex];
+  const exercise = state.editingDraft;
 
-  overlay.hidden = !exercise;
   document.body.classList.toggle("settings-overlay-open", Boolean(exercise));
 
   if (!exercise) {
+    overlay.classList.remove("open");
+    window.clearTimeout(editorPanelTimer);
+    editorPanelTimer = window.setTimeout(() => {
+      overlay.hidden = true;
+    }, 300);
     return;
   }
 
+  window.clearTimeout(editorPanelTimer);
+  overlay.hidden = false;
+  window.requestAnimationFrame(() => overlay.classList.add("open"));
+
   $("settings-name-input").value = exercise.name;
   $("settings-tagline-input").value = exercise.tagline;
-  $("settings-category-select").value = exercise.category;
-  $("settings-intensity-select").value = String(exercise.intensity);
+  $("settings-dialog-title").textContent = state.editingIsNew ? "add snack" : "edit snack";
+  $("settings-heat-chips").innerHTML = [
+    [1, "easy"],
+    [2, "medium"],
+    [3, "hard"],
+  ]
+    .map(
+      ([value, label]) =>
+        `<button class="chip ${exercise.intensity === value ? "active" : ""}" data-editor-field="intensity" data-val="${value}" type="button" aria-pressed="${exercise.intensity === value}">${label}</button>`,
+    )
+    .join("");
+  $("settings-flavour-chips").innerHTML = CATEGORY_ORDER.map(
+    (category) =>
+      `<button class="chip ${exercise.category === category ? `active cat-${category}` : ""}" data-editor-field="category" data-val="${category}" type="button" aria-pressed="${exercise.category === category}">${category}</button>`,
+  ).join("");
   $("settings-dialog-name").textContent = exercise.name || "untitled snack";
   $("settings-dialog-tagline").textContent = exercise.tagline || "add a tagline";
   $("settings-edit-bar").className = `day-bar cat-${exercise.category}`;
   $("settings-edit-bar").dataset.intensity = String(exercise.intensity);
-  $("settings-remove-btn").disabled =
-    state.library.filter((item) => !item.deleted).length <= 1;
+  $("settings-remove-btn").hidden = state.editingIsNew;
+  $("settings-remove-btn").disabled = state.library.filter((item) => !item.deleted).length <= 1;
 }
 
 function runSingleSnack(index) {
@@ -845,21 +966,13 @@ function startSnack() {
   $("timer-category").className = `timer-category cat-${snack.category}`;
   $("timer-name").textContent = snack.name;
   $("timer-intensity").innerHTML = renderIntensityPips(snack.intensity, snack.category);
-  $("timer-stack").innerHTML = state.stack
-    .map((snack, i) => {
-      const cls = i < state.runIdx ? "is-done" : i === state.runIdx ? "is-current" : "";
-      return `<li class="timer-stack-item${cls ? ` ${cls}` : ""}">${esc(snack.name)}</li>`;
-    })
-    .join("");
+  renderTimerStack("timer-stack");
   $("timer-fill").className = `timer-progress-fill cat-${snack.category}`;
 
   state.secondsLeft = SNACK_DURATION;
   state.snackEndTime = Date.now() + SNACK_DURATION * 1000;
   state.paused = false;
-  $("btn-pause").textContent = "pause";
-  $("btn-pause").classList.remove("pause-active");
-  $("rest-btn-pause").textContent = "pause";
-  $("rest-btn-pause").classList.remove("pause-active");
+  renderPauseButtons();
 
   updateTimerDisplay();
   state.timerHandle = window.setInterval(tickSnack, 1000);
@@ -910,12 +1023,7 @@ function startRest() {
 
   $("rest-seconds").textContent = String(REST_DURATION);
   $("rest-fill").style.transform = "scaleX(0)";
-  $("rest-stack").innerHTML = state.stack
-    .map((snack, i) => {
-      const cls = i < state.runIdx ? "is-done" : i === state.runIdx ? "is-current" : "";
-      return `<li class="timer-stack-item${cls ? ` ${cls}` : ""}">${esc(snack.name)}</li>`;
-    })
-    .join("");
+  renderTimerStack("rest-stack");
 
   state.restHandle = window.setInterval(() => {
     if (state.paused) return;
@@ -938,6 +1046,17 @@ function startRest() {
   }, 1000);
 }
 
+function renderTimerStack(targetId) {
+  $(targetId).innerHTML = state.stack
+    .map((snack, index) => ({ snack, index }))
+    .filter(({ index }) => !(index < state.runIdx && state.completed[index]?.skipped))
+    .map(({ snack, index }) => {
+      const cls = index < state.runIdx ? "is-done" : index === state.runIdx ? "is-current" : "";
+      return `<li class="timer-stack-item${cls ? ` ${cls}` : ""}">${esc(snack.name)}</li>`;
+    })
+    .join("");
+}
+
 function finishRun() {
   const entry = todayEntry();
   entry.snacks.push(...state.completed);
@@ -947,7 +1066,7 @@ function finishRun() {
 }
 
 function renderDone() {
-  const completed = resolveSnacks(state.completed, state.library);
+  const completed = resolveSnacks(state.completed, state.library).filter((snack) => !snack.skipped);
   $("done-title").textContent = `${formatSizeLabel(completed.length)} complete`;
   $("done-spark").innerHTML = renderSparkBars(completed, "done", "");
   $("done-list").innerHTML = completed
@@ -973,41 +1092,26 @@ function togglePause() {
     state.pauseStartTime = Date.now();
     state.paused = true;
   }
-  $("btn-pause").textContent = state.paused ? "resume" : "pause";
-  $("btn-pause").classList.toggle("pause-active", state.paused);
-  $("rest-btn-pause").textContent = state.paused ? "resume" : "pause";
-  $("rest-btn-pause").classList.toggle("pause-active", state.paused);
+  renderPauseButtons();
+}
+
+function renderPauseButtons() {
+  const icon = state.paused
+    ? '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg>'
+    : '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"></rect><rect x="6" y="4" width="4" height="16" rx="1"></rect></svg>';
+
+  [$("btn-pause"), $("rest-btn-pause")].forEach((button) => {
+    button.innerHTML = icon;
+    button.setAttribute("aria-label", state.paused ? "resume" : "pause");
+    button.classList.toggle("pause-active", state.paused);
+  });
 }
 
 function skipSnack() {
   completeCurrentSnack(true);
 }
 
-function prevSnack() {
-  if (state.runIdx === 0) {
-    toast("already at the first snack");
-    return;
-  }
-
-  state.runIdx -= 1;
-  state.completed.pop();
-  startSnack();
-}
-
 function quitRun() {
-  if (state.completed.length > 0) {
-    const confirmed = window.confirm(
-      `Quit? You've finished ${state.completed.length} of ${state.stack.length}. They'll still be logged.`,
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    const entry = todayEntry();
-    entry.snacks.push(...state.completed);
-    save();
-  }
-
   clearInterval(state.timerHandle);
   clearInterval(state.restHandle);
   renderHome();
@@ -1022,6 +1126,8 @@ function openSettings() {
 
 function goHome() {
   state.editingIndex = null;
+  state.editingIsNew = false;
+  state.editingDraft = null;
   renderSettingsEditor();
   renderHome();
   showView("home");
@@ -1249,12 +1355,15 @@ function attachSizeHandlers() {
   });
 }
 
-function openSnackEditor(index) {
-  if (!Number.isInteger(index) || !state.library[index]) {
+function openSnackEditor(index, draft = null) {
+  const source = draft || (Number.isInteger(index) ? state.library[index] : null);
+  if (!source) {
     return;
   }
 
-  state.editingIndex = index;
+  state.editingIndex = Number.isInteger(index) ? index : null;
+  state.editingIsNew = !Number.isInteger(index);
+  state.editingDraft = { ...source };
   renderSettingsEditor();
   window.requestAnimationFrame(() => {
     $("settings-name-input").focus();
@@ -1263,8 +1372,32 @@ function openSnackEditor(index) {
 
 function closeSnackEditor() {
   state.editingIndex = null;
+  state.editingIsNew = false;
+  state.editingDraft = null;
   renderSettings();
   renderSettingsEditor();
+}
+
+function updateEditorDraft(field, value) {
+  if (!state.editingDraft) return;
+  state.editingDraft[field] = field === "intensity" ? Number(value) : value;
+  renderSettingsEditor();
+}
+
+function saveSnackEditor() {
+  if (!state.editingDraft) return;
+
+  if (state.editingIsNew) {
+    state.library.push({ ...state.editingDraft });
+  } else if (state.editingIndex != null && state.library[state.editingIndex]) {
+    state.library[state.editingIndex] = {
+      ...state.library[state.editingIndex],
+      ...state.editingDraft,
+    };
+  }
+
+  save();
+  closeSnackEditor();
 }
 
 function updateLibraryField(index, field, value) {
@@ -1288,23 +1421,6 @@ function updateLibraryField(index, field, value) {
   }
 }
 
-function setVisibleSnacksEnabled(enabled) {
-  const visibleSnacks = getVisibleLibrarySnacks();
-  if (visibleSnacks.length === 0) {
-    return;
-  }
-
-  visibleSnacks.forEach(({ exercise }) => {
-    exercise.enabled = enabled;
-  });
-
-  save();
-  renderSettings();
-  if (state.editingIndex != null) {
-    renderSettingsEditor();
-  }
-}
-
 function addSnack() {
   const exercise = createEmptyExercise();
   if (state.settingsFilters.categories.length === 1) {
@@ -1314,10 +1430,7 @@ function addSnack() {
     exercise.intensity = state.settingsFilters.intensities[0];
   }
 
-  state.library.push(exercise);
-  save();
-  renderSettings();
-  openSnackEditor(state.library.length - 1);
+  openSnackEditor(null, exercise);
 }
 
 function deleteSnack(index) {
@@ -1336,6 +1449,8 @@ function deleteSnack(index) {
   save();
   if (state.editingIndex === index) {
     state.editingIndex = null;
+    state.editingIsNew = false;
+    state.editingDraft = null;
   }
   renderSettings();
   renderSettingsEditor();
@@ -1860,14 +1975,18 @@ async function init() {
     if (!(retryButton instanceof HTMLButtonElement)) return;
     retryPreviewExercise(Number(retryButton.dataset.index));
   });
-  $("btn-prev").addEventListener("click", prevSnack);
   $("btn-pause").addEventListener("click", togglePause);
   $("rest-btn-pause").addEventListener("click", togglePause);
   $("btn-skip").addEventListener("click", skipSnack);
-  $("timer-quit").addEventListener("click", quitRun);
+  $("timer-quit").addEventListener("click", openCancelPanel);
+  $("rest-cancel").addEventListener("click", openCancelPanel);
+  $("cancel-panel-close").addEventListener("click", () => closeCancelPanel());
+  $("cancel-sheet-scrim").addEventListener("click", () => closeCancelPanel());
+  $("cancel-confirm").addEventListener("click", confirmCancelWorkout);
   $("add-snack-btn").addEventListener("click", addSnack);
   $("export-json-btn").addEventListener("click", exportJson);
   $("import-json-btn").addEventListener("click", () => {
+    closeAdminPanel();
     $("import-json-input").click();
   });
   $("import-json-input").addEventListener("change", (event) => {
@@ -1893,6 +2012,7 @@ async function init() {
     });
   });
   $("settings-close-btn").addEventListener("click", closeSnackEditor);
+  $("settings-save-btn").addEventListener("click", saveSnackEditor);
   $("settings-overlay-scrim").addEventListener("click", closeSnackEditor);
   $("settings-remove-btn").addEventListener("click", () => {
     if (state.editingIndex != null) {
@@ -1900,25 +2020,21 @@ async function init() {
     }
   });
   $("settings-name-input").addEventListener("input", (event) => {
-    updateLibraryField(state.editingIndex, "name", event.target.value);
+    updateEditorDraft("name", event.target.value);
   });
   $("settings-tagline-input").addEventListener("input", (event) => {
-    updateLibraryField(state.editingIndex, "tagline", event.target.value);
+    updateEditorDraft("tagline", event.target.value);
   });
-  $("settings-category-select").addEventListener("change", (event) => {
-    updateLibraryField(state.editingIndex, "category", event.target.value);
-  });
-  $("settings-intensity-select").addEventListener("change", (event) => {
-    updateLibraryField(state.editingIndex, "intensity", event.target.value);
+  $("settings-overlay").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const chip = target?.closest("[data-editor-field]");
+    if (!(chip instanceof HTMLButtonElement) || !state.editingDraft) return;
+    updateEditorDraft(chip.dataset.editorField, chip.dataset.val);
   });
   $("filter-search-input").addEventListener("input", (event) => {
     state.settingsFilters.query = event.target.value;
     renderSettings();
   });
-  $("settings-visible-toggle").addEventListener("change", (event) => {
-    setVisibleSnacksEnabled(event.target.checked);
-  });
-
   document.querySelectorAll('[data-action="home"]').forEach((button) => {
     button.addEventListener("click", goHome);
   });
@@ -1927,6 +2043,9 @@ async function init() {
 
   $("more-toggle").addEventListener("click", () => toggleFilterSheet("main"));
   $("settings-filter-toggle").addEventListener("click", () => toggleFilterSheet("library"));
+  $("admin-toggle").addEventListener("click", toggleAdminPanel);
+  $("admin-panel-close").addEventListener("click", () => closeAdminPanel());
+  $("admin-sheet-scrim").addEventListener("click", () => closeAdminPanel());
   $("filter-panel-close").addEventListener("click", () => closeFilterSheet());
   $("filter-sheet-scrim").addEventListener("click", () => closeFilterSheet());
 
@@ -1961,6 +2080,13 @@ async function init() {
 
   $("settings-list").addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
+    const toggleBtn = target ? target.closest('[data-action="toggle-snack-enabled"]') : null;
+    if (toggleBtn instanceof HTMLButtonElement) {
+      const index = Number(toggleBtn.dataset.index);
+      const exercise = state.library[index];
+      if (exercise) updateLibraryField(index, "enabled", exercise.enabled === false);
+      return;
+    }
     const goBtn = target ? target.closest('[data-action="run-single-snack"]') : null;
     if (goBtn) {
       runSingleSnack(Number(goBtn.dataset.index));
@@ -1973,17 +2099,19 @@ async function init() {
 
     openSnackEditor(Number(button.dataset.index));
   });
-  $("settings-list").addEventListener("change", (event) => {
-    const target = event.target instanceof Element ? event.target : null;
-    const checkbox = target ? target.closest('[data-action="toggle-snack-enabled"]') : null;
-    if (!(checkbox instanceof HTMLInputElement)) {
+  document.addEventListener("keydown", (event) => {
+    if (state.cancelPanelOpen && event.key === "Escape") {
+      event.preventDefault();
+      closeCancelPanel();
       return;
     }
 
-    updateLibraryField(Number(checkbox.dataset.index), "enabled", checkbox.checked);
-  });
+    if (state.adminPanelOpen && event.key === "Escape") {
+      event.preventDefault();
+      closeAdminPanel();
+      return;
+    }
 
-  document.addEventListener("keydown", (event) => {
     if (state.filterSheetScope && event.key === "Escape") {
       event.preventDefault();
       closeFilterSheet();
@@ -2002,7 +2130,7 @@ async function init() {
       return;
     }
 
-    if (state.editingIndex != null && event.key === "Escape") {
+    if (state.editingDraft && event.key === "Escape") {
       event.preventDefault();
       closeSnackEditor();
       return;
@@ -2024,15 +2152,15 @@ async function init() {
         skipSnack();
       }
 
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        prevSnack();
-      }
-
       if (event.key === "Escape") {
         event.preventDefault();
-        quitRun();
+        openCancelPanel();
       }
+    }
+
+    if ($("view-rest").classList.contains("active") && event.key === "Escape") {
+      event.preventDefault();
+      openCancelPanel();
     }
   });
 
