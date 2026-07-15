@@ -604,6 +604,10 @@ button {
   margin-left: -12px;
 }
 
+.back-btn svg {
+  display: block;
+}
+
 .back-btn:hover,
 .btn-muted:hover,
 .timer-quit:hover,
