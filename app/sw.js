@@ -1,8 +1,13 @@
-const CACHE_NAME = "snax-shell-v2";
+const CACHE_NAME = "snax-shell-v21";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
+  "./themes/basquiat.css",
+  "./themes/mondrian.css",
+  "./themes/pollock.css",
+  "./assets/basquiat-exercise-icons.png",
+  "./theme.js",
   "./config.js",
   "./main.js",
   "./model.js",

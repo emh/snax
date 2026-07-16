@@ -75,6 +75,7 @@ const state = {
   editingIsNew: false,
   editingDraft: null,
   currentView: "home",
+  graffitiVisit: 0,
   pendingImport: null,
   importModes: {
     history: "merge",
@@ -85,6 +86,53 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const EXPORT_SCHEMA = "snax.history.v2";
 const TIMER_WAKE_LOCK_TYPE = "screen";
+const ICON_SPRITE_PATH = "./assets/basquiat-exercise-icons.png";
+const TODAY_ICONS = Object.freeze([
+  Object.freeze({ name: "kettlebell", viewBox: "95 170 320 320" }),
+  Object.freeze({ name: "dumbbell", viewBox: "440 165 410 310" }),
+  Object.freeze({ name: "bicep", viewBox: "890 135 320 355" }),
+  Object.freeze({ name: "runner", viewBox: "180 555 350 275" }),
+  Object.freeze({ name: "pushup", viewBox: "655 575 420 255" }),
+  Object.freeze({ name: "jump-rope", viewBox: "225 840 390 355" }),
+  Object.freeze({ name: "boxing-glove", viewBox: "700 865 385 335" }),
+]);
+const TODAY_GRAFFITI = Object.freeze({
+  none: Object.freeze([
+    Object.freeze(["MAKE YOUR", "MARK"]),
+    Object.freeze(["BEGIN", "ANYWHERE"]),
+    Object.freeze(["ONE IS", "ENOUGH"]),
+    Object.freeze(["THE BODY", "IS WAITING"]),
+  ]),
+  light: Object.freeze([
+    Object.freeze(["YOU", "SHOWED UP"]),
+    Object.freeze(["SMALL WORK", "REAL WORK"]),
+    Object.freeze(["ONE DOWN", "KEEP MOVING"]),
+    Object.freeze(["MOTION MAKES", "MOMENTUM"]),
+  ]),
+  steady: Object.freeze([
+    Object.freeze(["MOVE WELL", "LIVE RAW"]),
+    Object.freeze(["TRAIN WITH", "INTENT"]),
+    Object.freeze(["KEEP THE FIRE", "HONEST"]),
+    Object.freeze(["STRONGER", "BY DOING"]),
+  ]),
+  full: Object.freeze([
+    Object.freeze(["WORK DONE", "HEAD HIGH"]),
+    Object.freeze(["THE WORK", "IS SHOWING"]),
+    Object.freeze(["BIG DAY", "DEEP BREATH"]),
+    Object.freeze(["ENOUGH", "FOR TODAY", "COME BACK", "HUNGRY"]),
+  ]),
+});
+const POLLOCK_SPLATTER_PALETTE = Object.freeze([
+  "#161514",
+  "#161514",
+  "#161514",
+  "#c2471f",
+  "#db7b22",
+  "#168c82",
+  "#267eb3",
+  "#874a76",
+  "#d6a52b",
+]);
 
 let toastTimer;
 let syncClient = null;
@@ -97,6 +145,7 @@ let adminPanelTimer = null;
 let editorPanelTimer = null;
 let cancelPanelTimer = null;
 let workoutSetupTimer = null;
+let pollockSplatterFrame = null;
 
 function initAudio() {
   if (!audioCtx) {
@@ -190,12 +239,20 @@ function showView(name) {
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
   $(`view-${name}`).classList.add("active");
   state.currentView = name;
+  syncSettingsButtonHost();
   renderBottomToolbar();
   syncTimerWakeLock();
   requestAnimationFrame(() => {
     window.scrollTo(0, 0);
     syncFloatingBackButton();
+    schedulePollockSplatters(name);
   });
+}
+
+function syncSettingsButtonHost() {
+  const button = $("admin-toggle");
+  const host = document.querySelector(".view.active [data-settings-host]");
+  if (button && host && button.parentElement !== host) host.append(button);
 }
 
 function syncFloatingBackButton() {
@@ -206,14 +263,10 @@ function syncFloatingBackButton() {
     button.closest(".preview-header")?.classList.toggle("has-floating-back", Boolean(shouldFloat));
   });
 
-  $("link-btn").classList.toggle(
-    "header-action-floating",
-    Boolean($("view-home").classList.contains("active") && scrolled),
-  );
-  document.querySelector(".library-header-actions")?.classList.toggle(
-    "header-actions-floating",
-    Boolean($("view-settings").classList.contains("active") && scrolled),
-  );
+  document.querySelectorAll("[data-settings-host]").forEach((group) => {
+    const shouldFloat = Boolean(group.closest(".view.active") && scrolled);
+    group.classList.toggle("header-actions-floating", shouldFloat);
+  });
 }
 
 function renderBottomToolbar() {
@@ -440,12 +493,221 @@ function renderDate() {
 }
 
 function renderToday() {
-  const entry = findHistoryEntry(state.history, todayKey());
+  const dateKey = todayKey();
+  const entry = findHistoryEntry(state.history, dateKey);
   const snacks = resolveEntrySnacks(entry);
   $("today-meta").textContent = formatMetaText(snacks);
   $("today-spark").innerHTML = renderSparkBars(snacks, "today", "quiet so far");
   $("today-sessions").innerHTML = renderSessionGroups(resolveEntryWorkouts(entry));
+  renderTodayGraffiti(dateKey, snacks.length);
+  renderTodayIconography(dateKey, snacks.length);
   scheduleSparkOverflowUpdate();
+}
+
+function renderTodayGraffiti(dateKey, snackCount) {
+  const tier = snackCount === 0 ? "none" : snackCount < 10 ? "light" : snackCount < 20 ? "steady" : "full";
+  const phrases = TODAY_GRAFFITI[tier];
+  const phraseSeed = stableTextHash(`${dateKey}:${tier}:phrase`);
+  const markSeed = stableTextHash(`${dateKey}:${tier}:mark:${state.graffitiVisit}`);
+  const phraseIndex = (phraseSeed + state.graffitiVisit) % phrases.length;
+  const graffiti = $("today-graffiti");
+  const bottomGraffiti = $("today-graffiti-bottom");
+
+  graffiti.dataset.tier = tier;
+  graffiti.dataset.variant = String(markSeed % 4);
+  replaceGraffitiLines(graffiti, phrases[phraseIndex]);
+
+  bottomGraffiti.hidden = snackCount === 0;
+  if (snackCount === 0) {
+    bottomGraffiti.replaceChildren();
+    return;
+  }
+
+  const bottomPhraseSeed = stableTextHash(`${dateKey}:${tier}:bottom-phrase`);
+  const bottomMarkSeed = stableTextHash(`${dateKey}:${tier}:bottom-mark:${state.graffitiVisit}`);
+  let bottomPhraseIndex = (bottomPhraseSeed + state.graffitiVisit) % phrases.length;
+  if (bottomPhraseIndex === phraseIndex) {
+    bottomPhraseIndex = (bottomPhraseIndex + 1) % phrases.length;
+  }
+  bottomGraffiti.dataset.tier = tier;
+  bottomGraffiti.dataset.variant = String(bottomMarkSeed % 4);
+  replaceGraffitiLines(bottomGraffiti, phrases[bottomPhraseIndex]);
+}
+
+function replaceGraffitiLines(element, phrase) {
+  element.replaceChildren(
+    ...phrase.map((line) => {
+      const span = document.createElement("span");
+      span.textContent = line;
+      return span;
+    }),
+  );
+}
+
+function renderTodayIconography(dateKey, snackCount) {
+  const dateIconIndex = (stableTextHash(`${dateKey}:date-icon`) + state.graffitiVisit) % TODAY_ICONS.length;
+  let bottomIconIndex = (stableTextHash(`${dateKey}:bottom-icon`) + state.graffitiVisit) % TODAY_ICONS.length;
+  if (bottomIconIndex === dateIconIndex) {
+    bottomIconIndex = (bottomIconIndex + 1) % TODAY_ICONS.length;
+  }
+
+  renderTodayIcon($("today-icon-date"), TODAY_ICONS[dateIconIndex]);
+
+  const bottomFlourishes = $("today-bottom-flourishes");
+  bottomFlourishes.hidden = snackCount === 0;
+  if (snackCount === 0) {
+    $("today-icon-bottom").replaceChildren();
+    return;
+  }
+
+  renderTodayIcon($("today-icon-bottom"), TODAY_ICONS[bottomIconIndex]);
+}
+
+function renderTodayIcon(element, icon) {
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNamespace, "svg");
+  const image = document.createElementNS(svgNamespace, "image");
+
+  svg.setAttribute("viewBox", icon.viewBox);
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.setAttribute("focusable", "false");
+  svg.dataset.icon = icon.name;
+  image.setAttribute("href", ICON_SPRITE_PATH);
+  image.setAttribute("width", "1254");
+  image.setAttribute("height", "1254");
+  svg.append(image);
+  element.replaceChildren(svg);
+}
+
+function stableTextHash(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function pollockRandom(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function pollockNumber(value) {
+  return Number(value).toFixed(1);
+}
+
+function pollockBlobPath(centerX, centerY, radius) {
+  const pointCount = 12 + Math.floor(Math.random() * 7);
+  const points = Array.from({ length: pointCount }, (_, index) => {
+    const angle = (Math.PI * 2 * index) / pointCount;
+    const pointRadius = radius * pollockRandom(0.58, 1.36);
+    return {
+      x: centerX + Math.cos(angle) * pointRadius,
+      y: centerY + Math.sin(angle) * pointRadius,
+    };
+  });
+
+  return `${points
+    .map((point, index) => `${index === 0 ? "M" : "L"}${pollockNumber(point.x)} ${pollockNumber(point.y)}`)
+    .join(" ")} Z`;
+}
+
+function pollockSplatterX(width, radius) {
+  if (Math.random() < 0.68) {
+    return Math.random() < 0.5
+      ? pollockRandom(-radius, width * 0.24)
+      : pollockRandom(width * 0.76, width + radius);
+  }
+  return pollockRandom(0, width);
+}
+
+function pollockTodaySnackCount() {
+  return resolveEntrySnacks(findHistoryEntry(state.history, todayKey())).length;
+}
+
+function buildPollockSplatterSvg(width, height, snackCount) {
+  const areaFactor = Math.min(3.5, Math.max(1, height / Math.max(width * 2, 1)));
+  const clusterCount = Math.min(90, Math.round((6 + Math.min(snackCount, 32) * 1.05) * areaFactor));
+  const strokeCount = Math.min(14, 2 + Math.floor(snackCount / 5) + Math.floor(areaFactor - 1));
+  const marks = [];
+
+  for (let index = 0; index < strokeCount; index += 1) {
+    const color = POLLOCK_SPLATTER_PALETTE[Math.floor(Math.random() * POLLOCK_SPLATTER_PALETTE.length)];
+    const startX = pollockRandom(-width * 0.16, width * 0.7);
+    const startY = pollockRandom(0, height);
+    const endX = startX + pollockRandom(width * 0.32, width * 0.9);
+    const endY = startY + pollockRandom(-height * 0.14, height * 0.14);
+    const controlX1 = startX + (endX - startX) * pollockRandom(0.2, 0.42);
+    const controlY1 = startY + pollockRandom(-height * 0.12, height * 0.12);
+    const controlX2 = startX + (endX - startX) * pollockRandom(0.58, 0.82);
+    const controlY2 = endY + pollockRandom(-height * 0.12, height * 0.12);
+    marks.push(
+      `<path d="M${pollockNumber(startX)} ${pollockNumber(startY)} C${pollockNumber(controlX1)} ${pollockNumber(controlY1)} ${pollockNumber(controlX2)} ${pollockNumber(controlY2)} ${pollockNumber(endX)} ${pollockNumber(endY)}" fill="none" stroke="${color}" stroke-width="${pollockNumber(pollockRandom(0.7, 2.8))}" stroke-linecap="round" opacity="${pollockNumber(pollockRandom(0.22, 0.48))}"/>`,
+    );
+  }
+
+  for (let index = 0; index < clusterCount; index += 1) {
+    const color = POLLOCK_SPLATTER_PALETTE[Math.floor(Math.random() * POLLOCK_SPLATTER_PALETTE.length)];
+    const isLarge = Math.random() < 0.12;
+    const radius = isLarge ? pollockRandom(22, 48) : pollockRandom(4, 17);
+    const centerX = pollockSplatterX(width, radius);
+    const centerY = pollockRandom(-radius, height + radius);
+    const opacity = color === "#161514" ? pollockRandom(0.34, 0.58) : pollockRandom(0.42, 0.68);
+    marks.push(
+      `<path d="${pollockBlobPath(centerX, centerY, radius)}" fill="${color}" opacity="${pollockNumber(opacity)}"/>`,
+    );
+
+    const dropletCount = 4 + Math.floor(Math.random() * (isLarge ? 10 : 7));
+    for (let dropletIndex = 0; dropletIndex < dropletCount; dropletIndex += 1) {
+      const angle = pollockRandom(0, Math.PI * 2);
+      const distance = radius * pollockRandom(1.35, isLarge ? 4.6 : 3.4);
+      const dropletRadius = Math.max(0.7, radius * pollockRandom(0.06, 0.2));
+      const dropletX = centerX + Math.cos(angle) * distance;
+      const dropletY = centerY + Math.sin(angle) * distance;
+      marks.push(
+        `<circle cx="${pollockNumber(dropletX)}" cy="${pollockNumber(dropletY)}" r="${pollockNumber(dropletRadius)}" fill="${color}" opacity="${pollockNumber(opacity * pollockRandom(0.66, 1))}"/>`,
+      );
+    }
+
+    if (Math.random() < 0.24) {
+      const dripLength = pollockRandom(radius * 1.8, radius * 5.2);
+      marks.push(
+        `<path d="M${pollockNumber(centerX)} ${pollockNumber(centerY)} Q${pollockNumber(centerX + pollockRandom(-radius, radius))} ${pollockNumber(centerY + dripLength * 0.45)} ${pollockNumber(centerX + pollockRandom(-radius * 0.35, radius * 0.35))} ${pollockNumber(centerY + dripLength)}" fill="none" stroke="${color}" stroke-width="${pollockNumber(pollockRandom(0.8, 2.4))}" stroke-linecap="round" opacity="${pollockNumber(opacity * 0.76)}"/>`,
+      );
+    }
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><g style="mix-blend-mode:multiply">${marks.join("")}</g></svg>`;
+}
+
+function renderPollockSplatters(viewName = state.currentView) {
+  const views = document.querySelectorAll(".view");
+  if (globalThis.SNAX_THEME?.current() !== "pollock") {
+    views.forEach((view) => {
+      view.style.removeProperty("--pollock-splatter-image");
+      delete view.dataset.pollockSplatterCount;
+    });
+    return;
+  }
+
+  const view = $(`view-${viewName}`);
+  if (!view?.classList.contains("active")) return;
+  const rect = view.getBoundingClientRect();
+  const width = Math.max(320, Math.ceil(rect.width || window.innerWidth));
+  const height = Math.max(window.innerHeight, view.scrollHeight, Math.ceil(rect.height));
+  const snackCount = pollockTodaySnackCount();
+  const svg = buildPollockSplatterSvg(width, height, snackCount);
+  const image = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  view.style.setProperty("--pollock-splatter-image", image);
+  view.dataset.pollockSplatterCount = String(snackCount);
+}
+
+function schedulePollockSplatters(viewName = state.currentView) {
+  window.cancelAnimationFrame(pollockSplatterFrame);
+  pollockSplatterFrame = window.requestAnimationFrame(() => {
+    pollockSplatterFrame = null;
+    renderPollockSplatters(viewName);
+  });
 }
 
 function renderSessionGroups(workouts) {
@@ -1304,6 +1566,9 @@ function openSettings() {
 }
 
 function goHome() {
+  if (state.currentView === "history" || state.currentView === "settings") {
+    state.graffitiVisit += 1;
+  }
   state.editingIndex = null;
   state.editingIsNew = false;
   state.editingDraft = null;
@@ -2137,6 +2402,8 @@ window.snaxDev = {
 
 async function init() {
   const isDevHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  globalThis.SNAX_THEME?.syncControls();
+  document.addEventListener("snax:themechange", () => schedulePollockSplatters(state.currentView));
   document.querySelectorAll('[data-action="dev-complete-workout"]').forEach((button) => {
     button.hidden = !isDevHost;
     button.addEventListener("click", completeWorkoutForDev);
@@ -2144,6 +2411,8 @@ async function init() {
   attachChipHandlers();
   attachSizeHandlers();
   renderHome();
+  schedulePollockSplatters("home");
+  syncSettingsButtonHost();
   document.addEventListener("visibilitychange", handleVisibilityChange);
   document.addEventListener(
     "scroll",
@@ -2154,7 +2423,10 @@ async function init() {
     },
     true,
   );
-  window.addEventListener("resize", scheduleSparkOverflowUpdate);
+  window.addEventListener("resize", () => {
+    scheduleSparkOverflowUpdate();
+    schedulePollockSplatters(state.currentView);
+  });
 
   $("link-btn").addEventListener("click", () => {
     toggleLinkPanel().catch((error) => {
@@ -2269,6 +2541,12 @@ async function init() {
   $("admin-toggle").addEventListener("click", toggleAdminPanel);
   $("admin-panel-close").addEventListener("click", () => closeAdminPanel());
   $("admin-sheet-scrim").addEventListener("click", () => closeAdminPanel());
+  $("admin-sheet").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const option = target?.closest("[data-theme-option]");
+    if (!(option instanceof HTMLButtonElement)) return;
+    globalThis.SNAX_THEME?.apply(option.dataset.themeOption);
+  });
   $("workout-setup-close").addEventListener("click", () => closeWorkoutSetup());
   $("workout-setup-scrim").addEventListener("click", () => closeWorkoutSetup());
   $("workout-setup-confirm").addEventListener("click", confirmWorkoutSetup);
