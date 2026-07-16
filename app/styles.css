@@ -251,7 +251,7 @@ body.cancel-sheet-open {
 .home-header {
   position: relative;
   padding-top: calc(58px + var(--safe-top));
-  animation: fade-slide-in 520ms var(--ease) both;
+  animation: fade-slide-in 520ms var(--ease);
 }
 
 .today-graffiti,
@@ -261,14 +261,23 @@ body.cancel-sheet-open {
   display: none;
 }
 
-.home-link-button {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.home-header-actions {
   position: absolute;
   z-index: 2;
   top: calc(48px + var(--safe-top));
   right: 0;
+}
+
+.home-link-button {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   width: 44px;
   height: 44px;
   color: var(--ink-light);
@@ -279,19 +288,42 @@ body.cancel-sheet-open {
   color: var(--ink);
 }
 
-.home-link-button.header-action-floating {
+.header-actions.header-actions-floating {
   position: fixed;
   z-index: 30;
   top: calc(12px + var(--safe-top));
-  right: 14px;
-  justify-content: center;
+  right: max(14px, calc((100vw - 720px) / 2 + 14px));
+  height: 44px;
+  gap: 2px;
+  padding: 0 3px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
+  border-radius: 22px;
   background: rgba(247, 247, 245, 0.86);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   animation: back-button-lift 220ms var(--ease) both;
+}
+
+.global-settings-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--ink-light);
+}
+
+.app-shell > .global-settings-button { display: none; }
+
+.global-settings-button:hover,
+.global-settings-button[aria-expanded="true"] {
+  color: var(--ink);
+}
+
+.global-settings-button svg {
+  display: block;
 }
 
 .home-header h1,
@@ -816,9 +848,12 @@ body.cancel-sheet-open {
   padding-top: calc(34px + var(--safe-top));
 }
 
-.preview-header > .dev-complete-btn {
+.preview-header-actions,
+.history-header-actions,
+.done-header-actions {
   position: absolute;
-  top: calc(24px + var(--safe-top));
+  z-index: 2;
+  top: calc(34px + var(--safe-top));
   right: 0;
 }
 
@@ -1042,24 +1077,7 @@ body.cancel-sheet-open {
   gap: 2px;
 }
 
-.library-header-actions.header-actions-floating {
-  position: fixed;
-  z-index: 30;
-  top: calc(12px + var(--safe-top));
-  right: 14px;
-  height: 44px;
-  gap: 2px;
-  padding: 0 3px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 22px;
-  background: rgba(247, 247, 245, 0.86);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  animation: back-button-lift 220ms var(--ease) both;
-}
-
-.library-header-actions.header-actions-floating .library-icon-button {
+.header-actions.header-actions-floating > button {
   width: 40px;
   height: 42px;
 }
@@ -1156,6 +1174,14 @@ body.cancel-sheet-open {
 .theme-swatch-basquiat i:nth-child(1) { background: #ffd20a; transform: rotate(-5deg) scale(1.12); }
 .theme-swatch-basquiat i:nth-child(2) { background: #e52b20; transform: rotate(4deg) scale(1.1); }
 .theme-swatch-basquiat i:nth-child(3) { background: #111111; transform: rotate(-3deg) scale(1.12); }
+.theme-swatch-mondrian {
+  gap: 3px;
+  padding: 3px;
+  background: #111111;
+}
+.theme-swatch-mondrian i:nth-child(1) { background: #e31919; }
+.theme-swatch-mondrian i:nth-child(2) { background: #ffd21a; }
+.theme-swatch-mondrian i:nth-child(3) { background: #0752b8; }
 
 .cancel-warning {
   margin: 6px 0 0;

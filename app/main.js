@@ -227,12 +227,19 @@ function showView(name) {
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active"));
   $(`view-${name}`).classList.add("active");
   state.currentView = name;
+  syncSettingsButtonHost();
   renderBottomToolbar();
   syncTimerWakeLock();
   requestAnimationFrame(() => {
     window.scrollTo(0, 0);
     syncFloatingBackButton();
   });
+}
+
+function syncSettingsButtonHost() {
+  const button = $("admin-toggle");
+  const host = document.querySelector(".view.active [data-settings-host]");
+  if (button && host && button.parentElement !== host) host.append(button);
 }
 
 function syncFloatingBackButton() {
@@ -243,14 +250,10 @@ function syncFloatingBackButton() {
     button.closest(".preview-header")?.classList.toggle("has-floating-back", Boolean(shouldFloat));
   });
 
-  $("link-btn").classList.toggle(
-    "header-action-floating",
-    Boolean($("view-home").classList.contains("active") && scrolled),
-  );
-  document.querySelector(".library-header-actions")?.classList.toggle(
-    "header-actions-floating",
-    Boolean($("view-settings").classList.contains("active") && scrolled),
-  );
+  document.querySelectorAll("[data-settings-host]").forEach((group) => {
+    const shouldFloat = Boolean(group.closest(".view.active") && scrolled);
+    group.classList.toggle("header-actions-floating", shouldFloat);
+  });
 }
 
 function renderBottomToolbar() {
@@ -2272,6 +2275,7 @@ async function init() {
   attachChipHandlers();
   attachSizeHandlers();
   renderHome();
+  syncSettingsButtonHost();
   document.addEventListener("visibilitychange", handleVisibilityChange);
   document.addEventListener(
     "scroll",

@@ -14,6 +14,11 @@
       label: "basquiat",
       themeColor: "#f2eee4",
     }),
+    mondrian: Object.freeze({
+      id: "mondrian",
+      label: "mondrian",
+      themeColor: "#f5f5f2",
+    }),
   });
 
   function normalizeTheme(value) {

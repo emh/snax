@@ -20,22 +20,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@200..800&family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&family=Caveat:wght@400..700&family=Permanent+Marker&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@200..800&family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&family=Barlow+Condensed:wght@500;600;700;800&family=Caveat:wght@400..700&family=Permanent+Marker&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./themes/basquiat.css" />
+    <link rel="stylesheet" href="./themes/mondrian.css" />
   </head>
   <body>
     <div class="app-shell">
       <section id="view-home" class="view view-home active">
         <header class="home-header">
-          <button class="home-link-button" id="link-btn" type="button" aria-label="link devices" aria-expanded="false">
-            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-            </svg>
-          </button>
+          <div class="home-header-actions header-actions" data-settings-host>
+            <button class="home-link-button" id="link-btn" type="button" aria-label="link devices" aria-expanded="false">
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+            </button>
+          </div>
           <h1>sna<span class="x">x</span></h1>
           <div class="date-lockup">
             <p class="date" id="home-date"></p>
@@ -82,9 +85,11 @@
                 <path d="M19 12H5"></path>
               </svg>
             </button>
-            <button class="dev-complete-btn timer-icon-btn" data-action="dev-complete-workout" type="button" aria-label="record workout complete" hidden>
-              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
-            </button>
+            <div class="preview-header-actions header-actions" data-settings-host>
+              <button class="dev-complete-btn timer-icon-btn" data-action="dev-complete-workout" type="button" aria-label="record workout complete" hidden>
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+              </button>
+            </div>
             <h2 class="preview-title" id="preview-title">triple</h2>
             <p class="preview-sub" id="preview-sub">any flavour / any heat</p>
           </div>
@@ -110,7 +115,7 @@
             <span class="timer-round" id="timer-round" hidden>round 1 / 1</span>
             <span class="timer-step" id="timer-step">snack 1 / 3</span>
           </div>
-          <div class="timer-top-actions">
+          <div class="timer-top-actions header-actions" data-settings-host>
             <button class="dev-complete-btn timer-icon-btn" data-action="dev-complete-workout" type="button" aria-label="record workout complete" hidden>
               <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
             </button>
@@ -148,7 +153,7 @@
 
       <section id="view-rest" class="view view-rest">
         <div class="rest-topbar">
-          <div class="timer-top-actions">
+          <div class="timer-top-actions header-actions" data-settings-host>
             <button class="dev-complete-btn timer-icon-btn" data-action="dev-complete-workout" type="button" aria-label="record workout complete" hidden>
               <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
             </button>
@@ -181,6 +186,7 @@
               <path d="M19 12H5"></path>
             </svg>
           </button>
+          <div class="done-header-actions header-actions" data-settings-host></div>
         </div>
 
         <div class="done-wrap">
@@ -202,6 +208,7 @@
               <path d="M19 12H5"></path>
             </svg>
           </button>
+          <div class="history-header-actions header-actions" data-settings-host></div>
           <h2 class="preview-title">history</h2>
           <p class="preview-sub" id="history-meta"></p>
         </div>
@@ -217,7 +224,7 @@
             </svg>
           </button>
           <h2 class="preview-title">library</h2>
-          <div class="library-header-actions">
+          <div class="library-header-actions header-actions" data-settings-host>
             <button class="library-icon-button" id="settings-filter-toggle" type="button" aria-label="filter exercises" aria-expanded="false">
               <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path>
@@ -226,12 +233,6 @@
             <button class="library-icon-button" id="add-snack-btn" type="button" aria-label="add exercise">
               <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 12h14"></path><path d="M12 5v14"></path>
-              </svg>
-            </button>
-            <button class="library-icon-button" id="admin-toggle" type="button" aria-label="settings" aria-expanded="false">
-              <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
               </svg>
             </button>
           </div>
@@ -358,6 +359,13 @@
         </div>
       </section>
 
+      <button class="global-settings-button" id="admin-toggle" type="button" aria-label="settings" aria-expanded="false">
+        <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
+
       <nav class="bottom-toolbar" id="bottom-toolbar" aria-label="primary">
         <button class="toolbar-button active" data-tab="home" type="button" aria-label="today" aria-current="page">
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -452,6 +460,10 @@
               <button class="theme-option" data-theme-option="basquiat" type="button" aria-pressed="false">
                 <span class="theme-swatch theme-swatch-basquiat" aria-hidden="true"><i></i><i></i><i></i></span>
                 <span>basquiat</span>
+              </button>
+              <button class="theme-option" data-theme-option="mondrian" type="button" aria-pressed="false">
+                <span class="theme-swatch theme-swatch-mondrian" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span>mondrian</span>
               </button>
             </div>
           </section>

@@ -271,7 +271,8 @@ html[data-theme="basquiat"] .date::after {
 html[data-theme="basquiat"] .home-link-button,
 html[data-theme="basquiat"] .library-icon-button,
 html[data-theme="basquiat"] .back-btn,
-html[data-theme="basquiat"] .timer-icon-btn {
+html[data-theme="basquiat"] .timer-icon-btn,
+html[data-theme="basquiat"] .global-settings-button {
   color: var(--ink);
 }
 
@@ -651,8 +652,7 @@ html[data-theme="basquiat"] .toast {
 }
 
 html[data-theme="basquiat"] .back-btn.back-btn-floating,
-html[data-theme="basquiat"] .home-link-button.header-action-floating,
-html[data-theme="basquiat"] .library-header-actions.header-actions-floating {
+html[data-theme="basquiat"] .header-actions.header-actions-floating {
   border: 2px solid var(--ink);
   background: rgba(242, 238, 228, 0.96);
   box-shadow: 3px 5px 0 rgba(17, 16, 14, 0.2);
