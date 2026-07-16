@@ -1,4 +1,4 @@
-const CACHE_NAME = "snax-shell-v25";
+const CACHE_NAME = "snax-shell-v29";
 const APP_SHELL = [
   "./",
   "./index.html",

@@ -256,7 +256,7 @@ html[data-theme="mondrian"] .size-actions {
 html[data-theme="mondrian"] .size-buttons {
   display: grid;
   grid-column: 1;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 58px repeat(3, minmax(0, 1fr));
   align-items: stretch;
   gap: 0;
   justify-self: stretch;
@@ -286,7 +286,7 @@ html[data-theme="mondrian"] .size-bubble[data-size="3"] {
   transform: none;
 }
 
-html[data-theme="mondrian"] .size-bubble:first-child {
+html[data-theme="mondrian"] .custom-workout-toggle + .size-bubble {
   border-left: 0;
 }
 
@@ -308,7 +308,6 @@ html[data-theme="mondrian"] .size-bubble::after {
 html[data-theme="mondrian"] .size-bubble[data-size="1"]::after { content: "session"; }
 html[data-theme="mondrian"] .size-bubble[data-size="3"]::after,
 html[data-theme="mondrian"] .size-bubble[data-size="5"]::after { content: "sessions"; }
-
 html[data-theme="mondrian"] .size-bubble:hover,
 html[data-theme="mondrian"] .size-bubble:active {
   border-color: var(--ink);
@@ -316,7 +315,8 @@ html[data-theme="mondrian"] .size-bubble:active {
   transform: none;
 }
 
-html[data-theme="mondrian"] .more-link {
+html[data-theme="mondrian"] .more-link,
+html[data-theme="mondrian"] .custom-workout-toggle {
   grid-row: 1;
   grid-column: 2;
   align-self: stretch;
@@ -330,7 +330,15 @@ html[data-theme="mondrian"] .more-link {
   border-left: var(--mondrian-line) solid var(--ink);
 }
 
-html[data-theme="mondrian"] .more-link svg {
+html[data-theme="mondrian"] .custom-workout-toggle {
+  grid-row: 1;
+  grid-column: 1;
+  border-right: var(--mondrian-line) solid var(--ink);
+  border-left: 0;
+}
+
+html[data-theme="mondrian"] .more-link svg,
+html[data-theme="mondrian"] .custom-workout-toggle svg {
   width: 23px;
   height: 23px;
   stroke-width: 2.8;
@@ -1292,6 +1300,32 @@ html[data-theme="mondrian"] .bottom-panel-close svg {
   margin: 0;
 }
 
+html[data-theme="mondrian"] .custom-workout-list {
+  border-top: var(--mondrian-line) solid var(--ink);
+}
+
+html[data-theme="mondrian"] .custom-workout-option {
+  padding-right: 12px;
+  padding-left: 12px;
+  border-bottom: 2px solid var(--ink);
+}
+
+html[data-theme="mondrian"] .custom-workout-option:hover,
+html[data-theme="mondrian"] .custom-workout-option.is-selected {
+  background: var(--mondrian-yellow);
+}
+
+html[data-theme="mondrian"] .custom-workout-option-name {
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-theme="mondrian"] .custom-workout-confirm {
+  border: 2px solid var(--ink);
+}
+
 html[data-theme="mondrian"] .chip,
 html[data-theme="mondrian"] .btn-muted,
 html[data-theme="mondrian"] .import-mode span,
@@ -1380,6 +1414,10 @@ html[data-theme="mondrian"] .toast {
 
   html[data-theme="mondrian"] .size-actions {
     grid-template-columns: minmax(0, 1fr) 46px;
+  }
+
+  html[data-theme="mondrian"] .size-buttons {
+    grid-template-columns: 46px repeat(3, minmax(0, 1fr));
   }
 
   html[data-theme="mondrian"] .size-bubble,

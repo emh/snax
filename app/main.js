@@ -13,7 +13,6 @@ import {
   formatLongDate,
   formatMetaText,
   formatShortDate,
-  formatSizeLabel,
   formatTime,
   formatTimerSeconds,
   getLoad,
@@ -45,6 +44,7 @@ const state = {
   animatedHistoryDays: new Set(),
   baseStack: [],
   stack: [],
+  previewSource: "generated",
   rounds: 1,
   workDuration: SNACK_DURATION,
   restDuration: REST_DURATION,
@@ -71,6 +71,9 @@ const state = {
   cancelPanelOpen: false,
   cancelWasPaused: false,
   workoutSetup: null,
+  customWorkoutOpen: false,
+  customWorkoutQuery: "",
+  customWorkoutSelection: [],
   linkBusy: false,
   linkError: "",
   linkCodeInput: "",
@@ -149,6 +152,7 @@ let adminPanelTimer = null;
 let editorPanelTimer = null;
 let cancelPanelTimer = null;
 let workoutSetupTimer = null;
+let customWorkoutTimer = null;
 let pollockSplatterFrame = null;
 
 function initAudio() {
@@ -230,6 +234,9 @@ function toast(message) {
 }
 
 function showView(name) {
+  if (state.customWorkoutOpen && name !== "home") {
+    closeCustomWorkoutPanel(true);
+  }
   if (state.filterSheetScope && name !== state.currentView) {
     closeFilterSheet(true);
   }
@@ -526,7 +533,7 @@ function renderToday() {
   const snacks = resolveEntrySnacks(entry);
   $("today-meta").textContent = formatMetaText(snacks);
   $("today-spark").innerHTML = renderSparkBars(snacks, "today", "quiet so far");
-  $("today-sessions").innerHTML = renderSessionGroups(resolveEntryWorkouts(entry));
+  $("today-sessions").innerHTML = renderSessionGroups(resolveEntryWorkouts(entry), { newestFirst: true });
   renderTodayGraffiti(dateKey, snacks.length);
   renderTodayIconography(dateKey, snacks.length);
   scheduleSparkOverflowUpdate();
@@ -738,10 +745,11 @@ function schedulePollockSplatters(viewName = state.currentView) {
   });
 }
 
-function renderSessionGroups(workouts) {
+function renderSessionGroups(workouts, { newestFirst = false } = {}) {
+  const sortDirection = newestFirst ? -1 : 1;
   return workouts
     .slice()
-    .sort((left, right) => String(left.at || "").localeCompare(String(right.at || "")))
+    .sort((left, right) => sortDirection * String(left.at || "").localeCompare(String(right.at || "")))
     .map((workout) => {
       const isFavourite = state.favourites.some((favourite) => favourite.id === workout.id);
       return `
@@ -952,9 +960,112 @@ function shakeJar() {
 
   state.baseStack = pickStack(pool, state.filters.size);
   state.stack = [...state.baseStack];
+  state.previewSource = "generated";
   state.rounds = 1;
   state.workDuration = SNACK_DURATION;
   state.restDuration = REST_DURATION;
+  renderPreview();
+  showView("preview");
+}
+
+function customWorkoutExercises() {
+  const query = state.customWorkoutQuery.trim().toLowerCase();
+  return state.library.filter((exercise) => {
+    if (exercise.deleted || exercise.enabled === false) return false;
+    if (!query) return true;
+    return exercise.name.toLowerCase().includes(query) || exercise.tagline.toLowerCase().includes(query);
+  });
+}
+
+function renderCustomWorkoutPanel() {
+  const input = $("custom-workout-search-input");
+  const selectedIndex = new Map(state.customWorkoutSelection.map((id, index) => [id, index]));
+  const exercises = customWorkoutExercises();
+  const count = state.customWorkoutSelection.length;
+
+  if (input.value !== state.customWorkoutQuery) input.value = state.customWorkoutQuery;
+  $("custom-workout-count").textContent = `${count} selected`;
+  $("custom-workout-confirm").disabled = count === 0;
+  $("custom-workout-list").innerHTML = exercises.length
+    ? exercises
+        .map((exercise) => {
+          const order = selectedIndex.get(exercise.id);
+          const isSelected = order !== undefined;
+          return `
+            <button class="custom-workout-option${isSelected ? " is-selected" : ""}" data-action="toggle-custom-exercise" data-exercise-id="${esc(exercise.id)}" type="button" aria-pressed="${isSelected}">
+              <span class="day-bar cat-${esc(exercise.category)}" data-intensity="${exercise.intensity}" aria-hidden="true"></span>
+              <span class="custom-workout-option-copy">
+                <span class="custom-workout-option-name">${esc(exercise.name)}</span>
+                <span class="custom-workout-option-cue">${esc(exercise.tagline)}</span>
+              </span>
+              <span class="custom-workout-order" aria-hidden="true">${isSelected ? String(order + 1).padStart(2, "0") : "+"}</span>
+            </button>`;
+        })
+        .join("")
+    : '<p class="custom-workout-empty">no exercises found</p>';
+}
+
+function openCustomWorkoutPanel() {
+  if (state.filterSheetScope) closeFilterSheet(true);
+  if (state.linkPanelOpen) closeLinkPanel(true);
+  if (state.adminPanelOpen) closeAdminPanel(true);
+  window.clearTimeout(customWorkoutTimer);
+  state.customWorkoutOpen = true;
+  state.customWorkoutQuery = "";
+  state.customWorkoutSelection = [];
+  renderCustomWorkoutPanel();
+
+  const sheet = $("custom-workout-sheet");
+  sheet.hidden = false;
+  document.body.classList.add("custom-workout-sheet-open");
+  $("custom-workout-toggle").setAttribute("aria-expanded", "true");
+  window.requestAnimationFrame(() => {
+    sheet.classList.add("open");
+    $("custom-workout-search-input").focus();
+  });
+}
+
+function closeCustomWorkoutPanel(immediate = false) {
+  const sheet = $("custom-workout-sheet");
+  window.clearTimeout(customWorkoutTimer);
+  state.customWorkoutOpen = false;
+  sheet.classList.remove("open");
+  document.body.classList.remove("custom-workout-sheet-open");
+  $("custom-workout-toggle").setAttribute("aria-expanded", "false");
+
+  if (immediate) {
+    sheet.hidden = true;
+    return;
+  }
+
+  customWorkoutTimer = window.setTimeout(() => {
+    sheet.hidden = true;
+  }, 300);
+}
+
+function toggleCustomWorkoutExercise(exerciseId) {
+  const selectedIndex = state.customWorkoutSelection.indexOf(exerciseId);
+  if (selectedIndex >= 0) {
+    state.customWorkoutSelection.splice(selectedIndex, 1);
+  } else {
+    state.customWorkoutSelection.push(exerciseId);
+  }
+  renderCustomWorkoutPanel();
+}
+
+function confirmCustomWorkout() {
+  if (state.customWorkoutSelection.length === 0) return;
+  const exercisesById = new Map(state.library.map((exercise) => [exercise.id, exercise]));
+  const selectedExercises = state.customWorkoutSelection.map((id) => exercisesById.get(id)).filter(Boolean);
+  if (selectedExercises.length === 0) return;
+
+  state.baseStack = selectedExercises;
+  state.stack = [...state.baseStack];
+  state.previewSource = "custom";
+  state.rounds = 1;
+  state.workDuration = SNACK_DURATION;
+  state.restDuration = REST_DURATION;
+  closeCustomWorkoutPanel(true);
   renderPreview();
   showView("preview");
 }
@@ -965,7 +1076,7 @@ function rebuildWorkoutStack() {
 
 function renderPreview() {
   $("preview-title").textContent = formatStackLabel(state.baseStack.length);
-  $("preview-sub").textContent = describeFilters(state.filters);
+  $("preview-sub").textContent = state.previewSource === "custom" ? "custom workout" : describeFilters(state.filters);
   $("preview-workout-stats").textContent = `${state.rounds} round${state.rounds === 1 ? "" : "s"} / ${state.workDuration}s work / ${state.restDuration}s rest`;
   $("preview-list").innerHTML = state.baseStack
     .map(
@@ -1009,7 +1120,10 @@ function retryPreviewExercise(index) {
   const currentExercise = state.baseStack[baseIndex];
   if (!currentExercise) return;
 
-  const pool = filterExercises(state.library, state.filters);
+  const pool =
+    state.previewSource === "custom"
+      ? state.library.filter((exercise) => !exercise.deleted && exercise.enabled !== false)
+      : filterExercises(state.library, state.filters);
   const usedIds = new Set(state.baseStack.map((exercise) => exercise.id));
   const unusedCandidates = pool.filter((exercise) => !usedIds.has(exercise.id));
   const candidates = unusedCandidates.length
@@ -1886,19 +2000,14 @@ async function copyText(value) {
 }
 
 function formatStackLabel(size) {
-  if (size === 1) {
-    return "single";
-  }
-
-  if (size === 3) {
-    return "triple";
-  }
-
-  if (size === 5) {
-    return "high five";
-  }
-
-  return formatSizeLabel(size);
+  const labels = {
+    1: "single",
+    2: "double",
+    3: "triple",
+    4: "quad",
+    5: "high five",
+  };
+  return labels[size] || "workout";
 }
 
 function attachChipHandlers() {
@@ -2738,6 +2847,20 @@ async function init() {
   window.addEventListener("scroll", syncFloatingBackButton, { passive: true });
 
   $("more-toggle").addEventListener("click", () => toggleFilterSheet("main"));
+  $("custom-workout-toggle").addEventListener("click", openCustomWorkoutPanel);
+  $("custom-workout-close").addEventListener("click", () => closeCustomWorkoutPanel());
+  $("custom-workout-scrim").addEventListener("click", () => closeCustomWorkoutPanel());
+  $("custom-workout-search-input").addEventListener("input", (event) => {
+    state.customWorkoutQuery = event.target.value;
+    renderCustomWorkoutPanel();
+  });
+  $("custom-workout-list").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const button = target?.closest('[data-action="toggle-custom-exercise"]');
+    if (!(button instanceof HTMLButtonElement)) return;
+    toggleCustomWorkoutExercise(button.dataset.exerciseId);
+  });
+  $("custom-workout-confirm").addEventListener("click", confirmCustomWorkout);
   $("settings-filter-toggle").addEventListener("click", () => toggleFilterSheet("library"));
   $("admin-toggle").addEventListener("click", toggleAdminPanel);
   $("admin-panel-close").addEventListener("click", () => closeAdminPanel());
@@ -2843,6 +2966,12 @@ async function init() {
     openSnackEditor(Number(button.dataset.index));
   });
   document.addEventListener("keydown", (event) => {
+    if (state.customWorkoutOpen && event.key === "Escape") {
+      event.preventDefault();
+      closeCustomWorkoutPanel();
+      return;
+    }
+    if (state.customWorkoutOpen) return;
     if (state.workoutSetup && event.key === "Escape") {
       event.preventDefault();
       closeWorkoutSetup();

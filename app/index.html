@@ -52,6 +52,11 @@
         <section class="picker">
           <div class="size-actions">
             <div class="size-buttons">
+              <button class="custom-workout-toggle" id="custom-workout-toggle" type="button" aria-label="custom workout" aria-expanded="false">
+                <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"></path>
+                </svg>
+              </button>
               <button class="size-bubble" data-action="shake-size" data-size="1" type="button" aria-label="single">1</button>
               <button class="size-bubble" data-action="shake-size" data-size="3" type="button" aria-label="triple">3</button>
               <button class="size-bubble" data-action="shake-size" data-size="5" type="button" aria-label="high five">5</button>
@@ -428,6 +433,29 @@
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2.6 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.31l-5.8 3.05 1.11-6.46-4.7-4.58 6.49-.94z"></path></svg>
         </button>
       </nav>
+
+      <div class="bottom-sheet custom-workout-sheet" id="custom-workout-sheet" hidden>
+        <button class="bottom-sheet-scrim" id="custom-workout-scrim" type="button" aria-label="close custom workout"></button>
+        <section class="bottom-panel custom-workout-panel" role="dialog" aria-modal="true" aria-labelledby="custom-workout-title">
+          <div class="bottom-panel-head">
+            <h2 id="custom-workout-title">custom workout</h2>
+            <button class="bottom-panel-close" id="custom-workout-close" type="button" aria-label="close custom workout">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+            </button>
+          </div>
+          <label class="settings-field custom-workout-search">
+            <span class="settings-label">search exercises</span>
+            <input class="settings-input" id="custom-workout-search-input" type="search" autocomplete="off" />
+          </label>
+          <p class="custom-workout-count" id="custom-workout-count">0 selected</p>
+          <div class="custom-workout-list" id="custom-workout-list"></div>
+          <div class="custom-workout-actions">
+            <button class="custom-workout-confirm" id="custom-workout-confirm" type="button" aria-label="preview custom workout" disabled>
+              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </button>
+          </div>
+        </section>
+      </div>
 
       <div class="bottom-sheet workout-setup-sheet" id="workout-setup-sheet" hidden>
         <button class="bottom-sheet-scrim" id="workout-setup-scrim" type="button" aria-label="close workout setup"></button>

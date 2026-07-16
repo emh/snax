@@ -310,6 +310,10 @@ html[data-theme="basquiat"] .size-bubble[data-size="1"] {
   transform: rotate(-3deg);
 }
 
+html[data-theme="basquiat"] .custom-workout-toggle {
+  color: var(--ink);
+}
+
 html[data-theme="basquiat"] .size-bubble[data-size="3"] {
   position: relative;
   width: 88px;
@@ -715,17 +719,19 @@ html[data-theme="basquiat"] .header-actions.header-actions-floating {
   }
 
   html[data-theme="basquiat"] .size-buttons {
-    gap: 18px;
+    gap: 10px;
   }
 
   html[data-theme="basquiat"] .size-bubble {
-    width: 62px;
-    height: 62px;
+    width: 54px;
+    height: 54px;
+    font-size: 25px;
   }
 
   html[data-theme="basquiat"] .size-bubble[data-size="3"] {
-    width: 82px;
-    height: 82px;
+    width: 72px;
+    height: 72px;
+    font-size: 38px;
   }
 
   html[data-theme="basquiat"] .day-group-time {

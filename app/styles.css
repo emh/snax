@@ -125,6 +125,7 @@ button {
 .filter-sheet { z-index: 50; }
 .link-sheet { z-index: 60; }
 .admin-sheet { z-index: 60; }
+.custom-workout-sheet { z-index: 70; }
 .workout-setup-sheet { z-index: 70; }
 .cancel-sheet { z-index: 80; }
 
@@ -202,6 +203,7 @@ button {
 body.filter-sheet-open,
 body.link-sheet-open,
 body.admin-sheet-open,
+body.custom-workout-sheet-open,
 body.workout-setup-sheet-open,
 body.cancel-sheet-open {
   overflow: hidden;
@@ -651,6 +653,24 @@ body.cancel-sheet-open {
 
 .size-bubble[data-size="1"] {
   background: var(--flavour-sky);
+}
+
+.custom-workout-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+  color: var(--ink-light);
+}
+
+.custom-workout-toggle svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.custom-workout-toggle:hover,
+.custom-workout-toggle[aria-expanded="true"] {
+  color: var(--ink);
 }
 
 .size-bubble[data-size="3"] {
@@ -1247,6 +1267,122 @@ body.cancel-sheet-open {
   color: var(--red);
 }
 
+.custom-workout-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.custom-workout-search {
+  flex: 0 0 auto;
+}
+
+.custom-workout-count {
+  flex: 0 0 auto;
+  margin: 14px 0 8px;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.custom-workout-list {
+  min-height: 120px;
+  overflow-y: auto;
+  border-top: 1px solid var(--rule);
+  overscroll-behavior: contain;
+}
+
+.custom-workout-option {
+  display: grid;
+  grid-template-columns: 5px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 62px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+  text-align: left;
+}
+
+.custom-workout-option:hover,
+.custom-workout-option.is-selected {
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.custom-workout-option-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.custom-workout-option-name {
+  overflow: hidden;
+  font-size: 20px;
+  font-style: italic;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-workout-option-cue {
+  overflow: hidden;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-workout-order {
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+}
+
+.custom-workout-option.is-selected .custom-workout-order {
+  color: var(--red);
+}
+
+.custom-workout-empty {
+  margin: 0;
+  padding: 28px 0;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+}
+
+.custom-workout-actions {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  padding-top: 14px;
+}
+
+.custom-workout-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: var(--ink);
+}
+
+.custom-workout-confirm:hover {
+  color: var(--red);
+}
+
+.custom-workout-confirm:disabled {
+  cursor: default;
+  opacity: 0.28;
+}
+
 .filter-sheet-search {
   margin-top: 18px;
 }
@@ -1258,6 +1394,7 @@ body.cancel-sheet-open {
 .filter-sheet-open .view.active,
 .link-sheet-open .view.active,
 .admin-sheet-open .view.active,
+.custom-workout-sheet-open .view.active,
 .settings-overlay-open .view.active,
 .cancel-sheet-open .view.active {
   z-index: auto;
@@ -2282,6 +2419,30 @@ body.settings-overlay-open {
   .import-dialog {
     padding: 18px 18px 22px;
   }
+}
+
+@media (max-width: 350px) {
+  .size-actions {
+    gap: 10px;
+  }
+
+  .size-buttons {
+    gap: 8px;
+  }
+
+  .size-bubble,
+  .size-bubble[data-size="3"] {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+
+  .size-bubble[data-size="3"] {
+    width: 60px;
+    height: 60px;
+    font-size: 25px;
+  }
+
 }
 
 @media (prefers-reduced-motion: reduce) {

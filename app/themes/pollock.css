@@ -276,7 +276,8 @@ html[data-theme="pollock"] .size-bubble:hover {
   transform: translateY(-2px) rotate(-1deg);
 }
 
-html[data-theme="pollock"] .more-link {
+html[data-theme="pollock"] .more-link,
+html[data-theme="pollock"] .custom-workout-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -292,14 +293,22 @@ html[data-theme="pollock"] .more-link {
   transform: translateX(16px);
 }
 
-html[data-theme="pollock"] .more-link svg {
+html[data-theme="pollock"] .custom-workout-toggle {
+  justify-self: start;
+  transform: translateX(-16px);
+}
+
+html[data-theme="pollock"] .more-link svg,
+html[data-theme="pollock"] .custom-workout-toggle svg {
   width: 22px;
   height: 22px;
   stroke-width: 2.4;
 }
 
 html[data-theme="pollock"] .more-link:hover,
-html[data-theme="pollock"] .more-link[aria-expanded="true"] {
+html[data-theme="pollock"] .more-link[aria-expanded="true"],
+html[data-theme="pollock"] .custom-workout-toggle:hover,
+html[data-theme="pollock"] .custom-workout-toggle[aria-expanded="true"] {
   color: var(--red);
   background: #fbf8f0;
 }
@@ -742,6 +751,16 @@ html[data-theme="pollock"] .bottom-panel-close {
   color: var(--ink);
 }
 
+html[data-theme="pollock"] .custom-workout-option-name {
+  font-family: var(--pollock-brush);
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .custom-workout-option.is-selected {
+  background: rgba(230, 173, 54, 0.2);
+}
+
 html[data-theme="pollock"] .chip-row {
   border-color: rgba(23, 22, 21, 0.22);
 }
@@ -801,10 +820,24 @@ html[data-theme="pollock"] .theme-option[aria-pressed="true"] {
   }
 
   html[data-theme="pollock"] .size-buttons {
-    gap: 10px;
+    gap: 6px;
   }
 
-  html[data-theme="pollock"] .more-link {
+  html[data-theme="pollock"] .size-bubble,
+  html[data-theme="pollock"] .size-bubble[data-size="3"] {
+    width: 58px;
+    height: 58px;
+    font-size: 27px;
+  }
+
+  html[data-theme="pollock"] .size-bubble[data-size="3"] {
+    width: 78px;
+    height: 78px;
+    font-size: 38px;
+  }
+
+  html[data-theme="pollock"] .more-link,
+  html[data-theme="pollock"] .custom-workout-toggle {
     width: 46px;
     height: 46px;
   }
@@ -841,26 +874,27 @@ html[data-theme="pollock"] .theme-option[aria-pressed="true"] {
   }
 
   html[data-theme="pollock"] .size-buttons {
-    gap: 7px;
+    gap: 4px;
   }
 
   html[data-theme="pollock"] .size-bubble,
   html[data-theme="pollock"] .size-bubble[data-size="3"] {
-    width: 70px;
-    height: 70px;
-    font-size: 31px;
+    width: 52px;
+    height: 52px;
+    font-size: 24px;
   }
 
   html[data-theme="pollock"] .size-bubble[data-size="3"] {
-    width: 88px;
-    height: 88px;
-    font-size: 43px;
+    width: 68px;
+    height: 68px;
+    font-size: 34px;
   }
 
-  html[data-theme="pollock"] .more-link {
-    width: 40px;
-    height: 40px;
-    transform: translateX(10px);
+  html[data-theme="pollock"] .more-link,
+  html[data-theme="pollock"] .custom-workout-toggle {
+    width: 36px;
+    height: 36px;
+    transform: none;
   }
 }
 
