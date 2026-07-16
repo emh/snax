@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="default">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -13,16 +13,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="snax" />
     <title>snax</title>
+    <script src="./theme.js"></script>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/png" sizes="512x512" href="./icon.png" />
     <link rel="apple-touch-icon" href="./icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@200..800&family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@200..800&family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&family=Caveat:wght@400..700&family=Permanent+Marker&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./themes/basquiat.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -217,7 +219,7 @@
                 <path d="M5 12h14"></path><path d="M12 5v14"></path>
               </svg>
             </button>
-            <button class="library-icon-button" id="admin-toggle" type="button" aria-label="admin" aria-expanded="false">
+            <button class="library-icon-button" id="admin-toggle" type="button" aria-label="settings" aria-expanded="false">
               <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
@@ -421,21 +423,37 @@
       </div>
 
       <div class="bottom-sheet admin-sheet" id="admin-sheet" hidden>
-        <button class="bottom-sheet-scrim" id="admin-sheet-scrim" type="button" aria-label="close admin panel"></button>
+        <button class="bottom-sheet-scrim" id="admin-sheet-scrim" type="button" aria-label="close settings"></button>
         <section class="bottom-panel" role="dialog" aria-modal="true" aria-labelledby="admin-panel-title">
           <div class="bottom-panel-head">
-            <h2 id="admin-panel-title">admin</h2>
-            <button class="bottom-panel-close" id="admin-panel-close" type="button" aria-label="close admin panel">
+            <h2 id="admin-panel-title">settings</h2>
+            <button class="bottom-panel-close" id="admin-panel-close" type="button" aria-label="close settings">
               <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
               </svg>
             </button>
           </div>
-          <div class="admin-actions">
-            <button class="btn-muted" id="export-json-btn" type="button">export json</button>
-            <button class="btn-muted" id="import-json-btn" type="button">import json</button>
-            <input id="import-json-input" type="file" accept="application/json,.json" hidden />
-          </div>
+          <section class="admin-section" aria-labelledby="appearance-title">
+            <h3 class="admin-section-title" id="appearance-title">appearance</h3>
+            <div class="theme-options">
+              <button class="theme-option" data-theme-option="default" type="button" aria-pressed="true">
+                <span class="theme-swatch theme-swatch-default" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span>default</span>
+              </button>
+              <button class="theme-option" data-theme-option="basquiat" type="button" aria-pressed="false">
+                <span class="theme-swatch theme-swatch-basquiat" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span>basquiat</span>
+              </button>
+            </div>
+          </section>
+          <section class="admin-section" aria-labelledby="data-title">
+            <h3 class="admin-section-title" id="data-title">data</h3>
+            <div class="admin-actions">
+              <button class="btn-muted" id="export-json-btn" type="button">export json</button>
+              <button class="btn-muted" id="import-json-btn" type="button">import json</button>
+              <input id="import-json-input" type="file" accept="application/json,.json" hidden />
+            </div>
+          </section>
         </section>
       </div>
 

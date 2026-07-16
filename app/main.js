@@ -2137,6 +2137,7 @@ window.snaxDev = {
 
 async function init() {
   const isDevHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  globalThis.SNAX_THEME?.syncControls();
   document.querySelectorAll('[data-action="dev-complete-workout"]').forEach((button) => {
     button.hidden = !isDevHost;
     button.addEventListener("click", completeWorkoutForDev);
@@ -2269,6 +2270,12 @@ async function init() {
   $("admin-toggle").addEventListener("click", toggleAdminPanel);
   $("admin-panel-close").addEventListener("click", () => closeAdminPanel());
   $("admin-sheet-scrim").addEventListener("click", () => closeAdminPanel());
+  $("admin-sheet").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const option = target?.closest("[data-theme-option]");
+    if (!(option instanceof HTMLButtonElement)) return;
+    globalThis.SNAX_THEME?.apply(option.dataset.themeOption);
+  });
   $("workout-setup-close").addEventListener("click", () => closeWorkoutSetup());
   $("workout-setup-scrim").addEventListener("click", () => closeWorkoutSetup());
   $("workout-setup-confirm").addEventListener("click", confirmWorkoutSetup);

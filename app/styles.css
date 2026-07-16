@@ -1081,6 +1081,75 @@ body.cancel-sheet-open {
   padding: 8px 0 6px;
 }
 
+.admin-section + .admin-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+}
+
+.admin-section-title {
+  margin: 0 0 12px;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.theme-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.theme-option {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--rule);
+  color: var(--ink-mid);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-align: left;
+  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease;
+}
+
+.theme-option:hover {
+  border-color: var(--ink-light);
+  color: var(--ink);
+}
+
+.theme-option[aria-pressed="true"] {
+  border-color: var(--ink);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.54);
+}
+
+.theme-swatch {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #f7f7f5;
+}
+
+.theme-swatch i {
+  display: block;
+  width: 33.333%;
+  height: 100%;
+}
+
+.theme-swatch-default i:nth-child(1) { background: #f7f7f5; }
+.theme-swatch-default i:nth-child(2) { background: #e69f00; }
+.theme-swatch-default i:nth-child(3) { background: #171717; }
+.theme-swatch-basquiat { background: #f2eee4; }
+.theme-swatch-basquiat i:nth-child(1) { background: #ffd20a; transform: rotate(-5deg) scale(1.12); }
+.theme-swatch-basquiat i:nth-child(2) { background: #e52b20; transform: rotate(4deg) scale(1.1); }
+.theme-swatch-basquiat i:nth-child(3) { background: #111111; transform: rotate(-3deg) scale(1.12); }
+
 .cancel-warning {
   margin: 6px 0 0;
   color: var(--ink-mid);
@@ -1170,6 +1239,7 @@ body.cancel-sheet-open {
 
 .settings-list {
   display: grid;
+  min-width: 0;
   margin-top: 24px;
 }
 
@@ -1177,6 +1247,8 @@ body.cancel-sheet-open {
   display: flex;
   align-items: stretch;
   gap: 14px;
+  width: 100%;
+  min-width: 0;
   padding: 22px 0;
   border-top: 1px solid var(--rule);
 }
@@ -1213,6 +1285,10 @@ body.cancel-sheet-open {
 .settings-card-copy {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.settings-card-copy .name {
+  overflow-wrap: anywhere;
 }
 
 .settings-enabled-toggle {

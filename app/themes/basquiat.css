@@ -1,0 +1,512 @@
+/* Basquiat-inspired core theme. Illustrative flourishes live in a later layer. */
+
+html[data-theme="basquiat"] {
+  --paper: #f2eee4;
+  --paper-shade: #e7e0d2;
+  --ink: #11100e;
+  --ink-mid: #4a453d;
+  --ink-light: #766f62;
+  --ink-faint: #b9af9e;
+  --rule: rgba(17, 16, 14, 0.82);
+  --red: #e12a20;
+  --red-light: #b91e17;
+  --flavour-blue: #168bd2;
+  --flavour-vermillion: #e12a20;
+  --flavour-green: #0cab75;
+  --flavour-purple: #97489d;
+  --flavour-orange: #f2b60b;
+  --flavour-sky: #c9e4df;
+  --cardio: var(--flavour-vermillion);
+  --strength: var(--flavour-blue);
+  --core: var(--flavour-purple);
+  --mobility: var(--flavour-green);
+  --restore: var(--flavour-orange);
+  --shadow: 7px 9px 0 rgba(17, 16, 14, 0.2);
+  --font-main: "Caveat", "Marker Felt", cursive;
+  --font-mono: "Permanent Marker", "Marker Felt", cursive;
+  --ease: cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+
+html[data-theme="basquiat"] body {
+  background:
+    radial-gradient(circle at 8% 14%, rgba(17, 16, 14, 0.035) 0 1px, transparent 1.5px) 0 0 / 17px 19px,
+    radial-gradient(ellipse at 76% 18%, rgba(255, 255, 255, 0.46), transparent 40%),
+    linear-gradient(104deg, rgba(120, 102, 76, 0.045), transparent 23%, rgba(255, 255, 255, 0.2) 58%, transparent 82%),
+    var(--paper);
+  font-size: 18px;
+}
+
+html[data-theme="basquiat"] .app-shell::before {
+  opacity: 0.5;
+  background-image:
+    repeating-linear-gradient(92deg, transparent 0 38px, rgba(91, 77, 55, 0.025) 39px 40px),
+    radial-gradient(rgba(40, 29, 16, 0.075) 0.7px, transparent 0.9px);
+  background-size: auto, 13px 15px;
+}
+
+html[data-theme="basquiat"] button {
+  font-family: inherit;
+}
+
+html[data-theme="basquiat"] .view-home,
+html[data-theme="basquiat"] .view-preview,
+html[data-theme="basquiat"] .view-settings,
+html[data-theme="basquiat"] .view-history,
+html[data-theme="basquiat"] .view-done {
+  width: min(100%, 680px);
+}
+
+/* Header and workout-size picker */
+
+html[data-theme="basquiat"] .home-header {
+  padding-top: calc(52px + var(--safe-top));
+}
+
+html[data-theme="basquiat"] .home-header h1 {
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-size: clamp(76px, 20vw, 112px);
+  font-weight: 400;
+  font-style: normal;
+  line-height: 0.88;
+  letter-spacing: -0.075em;
+  text-shadow: 2px 1px 0 rgba(17, 16, 14, 0.14);
+}
+
+html[data-theme="basquiat"] .home-header .x {
+  color: var(--red);
+  transform: rotate(-7deg) translate(2px, -1px) scale(1.07);
+}
+
+html[data-theme="basquiat"] .date {
+  position: relative;
+  width: max-content;
+  margin: 17px auto 0;
+  padding: 0 8px 8px;
+  color: var(--ink);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .date::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: var(--red);
+  clip-path: polygon(0 32%, 31% 9%, 62% 25%, 100% 0, 98% 70%, 59% 75%, 29% 57%, 1% 100%);
+}
+
+html[data-theme="basquiat"] .home-link-button,
+html[data-theme="basquiat"] .library-icon-button,
+html[data-theme="basquiat"] .back-btn,
+html[data-theme="basquiat"] .timer-icon-btn {
+  color: var(--ink);
+}
+
+html[data-theme="basquiat"] .picker {
+  margin-top: 42px;
+}
+
+html[data-theme="basquiat"] .size-actions {
+  padding-bottom: 24px;
+  border-bottom: 3px solid var(--ink);
+}
+
+html[data-theme="basquiat"] .size-buttons {
+  gap: 24px;
+}
+
+html[data-theme="basquiat"] .size-bubble {
+  width: 68px;
+  height: 68px;
+  border: 3px solid var(--ink);
+  background: #c9e4df;
+  box-shadow:
+    2px -1px 0 1px var(--paper),
+    4px 1px 0 2px var(--ink);
+  color: var(--ink);
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-size: 28px;
+  font-weight: 400;
+  font-style: normal;
+}
+
+html[data-theme="basquiat"] .size-bubble[data-size="1"] {
+  background: #c9e4df;
+  transform: rotate(-3deg);
+}
+
+html[data-theme="basquiat"] .size-bubble[data-size="3"] {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-width: 4px;
+  background: #ffd20a;
+  box-shadow:
+    2px -2px 0 2px var(--paper),
+    5px 2px 0 3px var(--ink);
+  font-size: 43px;
+  transform: rotate(1deg);
+}
+
+html[data-theme="basquiat"] .size-bubble[data-size="5"] {
+  background: #d8ddee;
+  transform: rotate(3deg);
+}
+
+html[data-theme="basquiat"] .size-bubble:hover {
+  border-color: var(--ink);
+  box-shadow:
+    2px -1px 0 1px var(--paper),
+    5px 3px 0 2px var(--ink);
+  transform: translateY(-2px) rotate(0deg);
+}
+
+html[data-theme="basquiat"] .size-bubble:active {
+  transform: scale(0.95);
+}
+
+html[data-theme="basquiat"] .more-link {
+  color: var(--ink);
+}
+
+/* Today, history, and exercise rows */
+
+html[data-theme="basquiat"] .today-panel {
+  margin-top: 38px;
+  padding-bottom: 24px;
+}
+
+html[data-theme="basquiat"] .section-label {
+  display: inline-block;
+  padding: 1px 10px 3px;
+  color: var(--ink);
+  background: #ffd20a;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  transform: rotate(-2deg);
+  clip-path: polygon(1% 17%, 98% 0, 94% 84%, 3% 100%);
+}
+
+html[data-theme="basquiat"] .section-meta,
+html[data-theme="basquiat"] .archive-meta,
+html[data-theme="basquiat"] .archive-month-meta,
+html[data-theme="basquiat"] .archive-date,
+html[data-theme="basquiat"] .preview-sub,
+html[data-theme="basquiat"] .done-stats,
+html[data-theme="basquiat"] .settings-count,
+html[data-theme="basquiat"] .preview-workout-stats,
+html[data-theme="basquiat"] .day-group-stats {
+  color: var(--ink-mid);
+  font-size: 12px;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .today-spark {
+  min-height: 58px;
+  padding: 10px 4px 2px;
+}
+
+html[data-theme="basquiat"] .spark-bar {
+  width: 9px;
+  border: 2px solid var(--ink);
+  border-bottom: 0;
+}
+
+html[data-theme="basquiat"] .spark-bar-archive {
+  width: 6px;
+}
+
+html[data-theme="basquiat"] .today-sessions,
+html[data-theme="basquiat"] .preview-list,
+html[data-theme="basquiat"] .history-list,
+html[data-theme="basquiat"] .settings-card,
+html[data-theme="basquiat"] .settings-card:last-child,
+html[data-theme="basquiat"] .done-summary,
+html[data-theme="basquiat"] .settings-dialog-preview,
+html[data-theme="basquiat"] .admin-section + .admin-section {
+  border-color: var(--ink);
+}
+
+html[data-theme="basquiat"] .day-group,
+html[data-theme="basquiat"] .preview-item {
+  border-bottom: 2px solid var(--ink);
+}
+
+html[data-theme="basquiat"] .day-group-time {
+  align-self: start;
+  width: max-content;
+  margin-top: 5px;
+  padding: 4px 9px 5px;
+  color: var(--paper);
+  background: var(--ink);
+  font-size: 13px;
+  transform: rotate(-2deg);
+  clip-path: polygon(2% 9%, 100% 0, 96% 91%, 0 100%);
+}
+
+html[data-theme="basquiat"] .day-snack-name,
+html[data-theme="basquiat"] .name,
+html[data-theme="basquiat"] .settings-dialog-name,
+html[data-theme="basquiat"] .done-list-item {
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .day-snack-name,
+html[data-theme="basquiat"] .name {
+  font-size: 23px;
+  line-height: 1.15;
+}
+
+html[data-theme="basquiat"] .day-bar {
+  width: 7px;
+}
+
+html[data-theme="basquiat"] .archive-month-title {
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .archive-month-toggle,
+html[data-theme="basquiat"] .history-day {
+  border-color: var(--ink);
+}
+
+html[data-theme="basquiat"] .archive-month-toggle::before,
+html[data-theme="basquiat"] .history-day-toggle::before {
+  color: var(--red);
+  font-size: 18px;
+}
+
+/* Secondary screens and controls */
+
+html[data-theme="basquiat"] .preview-title,
+html[data-theme="basquiat"] .done-title,
+html[data-theme="basquiat"] .bottom-panel-head h2,
+html[data-theme="basquiat"] .settings-dialog-title {
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-weight: 400;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .preview-title,
+html[data-theme="basquiat"] .done-title {
+  line-height: 1.05;
+}
+
+html[data-theme="basquiat"] .idx {
+  color: var(--red);
+  font-size: 13px;
+}
+
+html[data-theme="basquiat"] .cue,
+html[data-theme="basquiat"] .meta,
+html[data-theme="basquiat"] .duration,
+html[data-theme="basquiat"] .settings-dialog-tagline,
+html[data-theme="basquiat"] .import-file-name,
+html[data-theme="basquiat"] .import-section-meta,
+html[data-theme="basquiat"] .import-warning {
+  font-size: 12px;
+}
+
+html[data-theme="basquiat"] .bottom-toolbar {
+  gap: 8px;
+  padding: 9px 13px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: rgba(242, 238, 228, 0.96);
+  box-shadow: 5px 8px 0 rgba(17, 16, 14, 0.25);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform: translateX(-50%) rotate(-0.5deg);
+}
+
+html[data-theme="basquiat"] .toolbar-button {
+  border-radius: 999px;
+  color: var(--ink);
+}
+
+html[data-theme="basquiat"] .toolbar-button.active {
+  color: var(--red);
+  background: transparent;
+  box-shadow: inset 0 -3px 0 var(--red);
+}
+
+html[data-theme="basquiat"] .bottom-panel,
+html[data-theme="basquiat"] .import-dialog {
+  border: 3px solid var(--ink);
+  background:
+    radial-gradient(rgba(40, 29, 16, 0.055) 0.7px, transparent 0.9px) 0 0 / 13px 15px,
+    var(--paper);
+  box-shadow: 6px -8px 0 rgba(17, 16, 14, 0.18);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme="basquiat"] .bottom-panel {
+  border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+}
+
+html[data-theme="basquiat"] .bottom-sheet-scrim,
+html[data-theme="basquiat"] .settings-overlay-scrim {
+  background: rgba(17, 16, 14, 0.4);
+}
+
+html[data-theme="basquiat"] .chip,
+html[data-theme="basquiat"] .row-label,
+html[data-theme="basquiat"] .preview-option-heading,
+html[data-theme="basquiat"] .settings-label {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+html[data-theme="basquiat"] .chip-row {
+  border-color: var(--ink);
+}
+
+html[data-theme="basquiat"] .chip.active {
+  color: var(--red);
+  text-decoration: underline 3px;
+  text-underline-offset: 5px;
+}
+
+html[data-theme="basquiat"] .settings-input,
+html[data-theme="basquiat"] .link-code-box,
+html[data-theme="basquiat"] .link-url-box,
+html[data-theme="basquiat"] .import-mode span {
+  border: 2px solid var(--ink);
+  background: rgba(255, 255, 255, 0.42);
+  border-radius: 2px;
+}
+
+html[data-theme="basquiat"] .settings-input {
+  font-size: 22px;
+}
+
+html[data-theme="basquiat"] .btn-muted {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .btn-muted:hover,
+html[data-theme="basquiat"] .settings-go-btn:hover,
+html[data-theme="basquiat"] .settings-card-button:hover .name {
+  color: var(--red);
+}
+
+html[data-theme="basquiat"] .theme-option {
+  border: 2px solid var(--ink-faint);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .theme-option[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: #ffd20a;
+  box-shadow: 3px 4px 0 rgba(17, 16, 14, 0.25);
+  transform: rotate(-1deg);
+}
+
+/* Timer and completion */
+
+html[data-theme="basquiat"] .view-run,
+html[data-theme="basquiat"] .view-rest {
+  background:
+    radial-gradient(rgba(40, 29, 16, 0.05) 0.7px, transparent 0.9px) 0 0 / 13px 15px,
+    var(--paper);
+}
+
+html[data-theme="basquiat"] .timer-step,
+html[data-theme="basquiat"] .timer-round,
+html[data-theme="basquiat"] .timer-category,
+html[data-theme="basquiat"] .rest-label {
+  color: var(--ink-mid);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+html[data-theme="basquiat"] .timer-name {
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-weight: 400;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .timer-seconds,
+html[data-theme="basquiat"] .rest-seconds {
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: -0.08em;
+}
+
+html[data-theme="basquiat"] .timer-progress,
+html[data-theme="basquiat"] .rest-bar {
+  height: 5px;
+  background: rgba(17, 16, 14, 0.2);
+  transform: rotate(-0.5deg);
+}
+
+html[data-theme="basquiat"] .timer-stack-item {
+  font-family: var(--font-mono);
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .timer-stack-item.is-current {
+  color: var(--red);
+}
+
+html[data-theme="basquiat"] .done-list-item {
+  font-size: 18px;
+}
+
+html[data-theme="basquiat"] .toast {
+  color: var(--paper);
+  background: var(--ink);
+  border: 2px solid var(--paper);
+  box-shadow: 4px 5px 0 rgba(17, 16, 14, 0.25);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .back-btn.back-btn-floating,
+html[data-theme="basquiat"] .home-link-button.header-action-floating,
+html[data-theme="basquiat"] .library-header-actions.header-actions-floating {
+  border: 2px solid var(--ink);
+  background: rgba(242, 238, 228, 0.96);
+  box-shadow: 3px 5px 0 rgba(17, 16, 14, 0.2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+@media (max-width: 560px) {
+  html[data-theme="basquiat"] .size-buttons {
+    gap: 18px;
+  }
+
+  html[data-theme="basquiat"] .size-bubble {
+    width: 62px;
+    height: 62px;
+  }
+
+  html[data-theme="basquiat"] .size-bubble[data-size="3"] {
+    width: 82px;
+    height: 82px;
+  }
+
+  html[data-theme="basquiat"] .day-group-time {
+    margin-top: 0;
+  }
+}
