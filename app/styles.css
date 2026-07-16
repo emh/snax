@@ -1182,6 +1182,21 @@ body.cancel-sheet-open {
 .theme-swatch-mondrian i:nth-child(1) { background: #e31919; }
 .theme-swatch-mondrian i:nth-child(2) { background: #ffd21a; }
 .theme-swatch-mondrian i:nth-child(3) { background: #0752b8; }
+.theme-swatch-pollock {
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f4efe3;
+}
+.theme-swatch-pollock i {
+  width: 24%;
+  height: 115%;
+  clip-path: polygon(18% 0, 86% 5%, 100% 92%, 8% 100%, 0 20%);
+  transform: rotate(7deg);
+}
+.theme-swatch-pollock i:nth-child(1) { background: #171615; transform: rotate(-8deg); }
+.theme-swatch-pollock i:nth-child(2) { background: #d45a1e; transform: rotate(5deg); }
+.theme-swatch-pollock i:nth-child(3) { background: #169b7b; transform: rotate(-3deg); }
 
 .cancel-warning {
   margin: 6px 0 0;

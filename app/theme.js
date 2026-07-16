@@ -19,6 +19,11 @@
       label: "mondrian",
       themeColor: "#f5f5f2",
     }),
+    pollock: Object.freeze({
+      id: "pollock",
+      label: "pollock",
+      themeColor: "#f4efe3",
+    }),
   });
 
   function normalizeTheme(value) {

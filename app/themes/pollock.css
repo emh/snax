@@ -1,0 +1,834 @@
+/* Pollock-inspired theme: expressive brush marks over a generated paint field. */
+
+html[data-theme="pollock"] {
+  --paper: #f4efe3;
+  --paper-shade: #e9e0d1;
+  --ink: #171615;
+  --ink-mid: #4c4842;
+  --ink-light: #777067;
+  --ink-faint: #b8aea0;
+  --rule: rgba(23, 22, 21, 0.3);
+  --red: #b63d20;
+  --red-light: #8f2f18;
+  --flavour-blue: #177eb7;
+  --flavour-vermillion: #d65b1b;
+  --flavour-green: #159d79;
+  --flavour-purple: #914a83;
+  --flavour-orange: #dfa928;
+  --flavour-sky: #c7ddd6;
+  --cardio: var(--flavour-vermillion);
+  --strength: var(--flavour-blue);
+  --core: var(--flavour-purple);
+  --mobility: var(--flavour-green);
+  --restore: var(--flavour-orange);
+  --shadow: 8px 12px 30px rgba(23, 22, 21, 0.16);
+  --font-main: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono", "SF Mono", monospace;
+  --pollock-serif: "Cormorant Garamond", Georgia, serif;
+  --pollock-brush: "Permanent Marker", "Marker Felt", cursive;
+  --pollock-reading-surface: rgba(244, 239, 227, 0.7);
+  --pollock-reading-halo: rgba(244, 239, 227, 0.3);
+}
+
+html[data-theme="pollock"] body {
+  color: var(--ink);
+  background: #292825;
+  font-size: 18px;
+}
+
+html[data-theme="pollock"] .app-shell::before {
+  display: none;
+}
+
+html[data-theme="pollock"] button,
+html[data-theme="pollock"] input {
+  font-family: inherit;
+}
+
+html[data-theme="pollock"] .view-home,
+html[data-theme="pollock"] .view-preview,
+html[data-theme="pollock"] .view-settings,
+html[data-theme="pollock"] .view-history,
+html[data-theme="pollock"] .view-done,
+html[data-theme="pollock"] .view-run,
+html[data-theme="pollock"] .view-rest {
+  width: min(100%, 680px);
+  min-height: 100dvh;
+  margin-right: auto;
+  margin-left: auto;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image: var(--pollock-splatter-image, none);
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+html[data-theme="pollock"] .view-home,
+html[data-theme="pollock"] .view-history,
+html[data-theme="pollock"] .view-settings {
+  min-height: 100dvh;
+}
+
+html[data-theme="pollock"] .home-header,
+html[data-theme="pollock"] .picker,
+html[data-theme="pollock"] .today-panel,
+html[data-theme="pollock"] .preview-header,
+html[data-theme="pollock"] .preview-list,
+html[data-theme="pollock"] .preview-workout-stats,
+html[data-theme="pollock"] .history-list,
+html[data-theme="pollock"] .settings-summary,
+html[data-theme="pollock"] .settings-list,
+html[data-theme="pollock"] .done-wrap,
+html[data-theme="pollock"] .timer-position,
+html[data-theme="pollock"] .timer-stage,
+html[data-theme="pollock"] .timer-bottom,
+html[data-theme="pollock"] .rest-topbar,
+html[data-theme="pollock"] .rest-stage,
+html[data-theme="pollock"] .rest-bottom {
+  background-color: var(--pollock-reading-surface);
+  box-shadow: 0 0 20px 10px var(--pollock-reading-halo);
+}
+
+/* Shared controls */
+
+html[data-theme="pollock"] .home-link-button,
+html[data-theme="pollock"] .global-settings-button,
+html[data-theme="pollock"] .library-icon-button,
+html[data-theme="pollock"] .timer-icon-btn {
+  width: 46px;
+  height: 46px;
+  color: var(--ink);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-theme="pollock"] .home-link-button:hover,
+html[data-theme="pollock"] .home-link-button[aria-expanded="true"],
+html[data-theme="pollock"] .global-settings-button:hover,
+html[data-theme="pollock"] .global-settings-button[aria-expanded="true"],
+html[data-theme="pollock"] .library-icon-button:hover,
+html[data-theme="pollock"] .library-icon-button[aria-expanded="true"] {
+  color: var(--red);
+  background: transparent;
+}
+
+html[data-theme="pollock"] .header-actions {
+  gap: 4px;
+}
+
+html[data-theme="pollock"] .header-actions.header-actions-floating {
+  right: max(18px, calc((100vw - 680px) / 2 + 18px));
+  height: 52px;
+  gap: 0;
+  padding: 2px 5px;
+  border: 1px solid rgba(23, 22, 21, 0.18);
+  border-radius: 28px;
+  background: rgba(244, 239, 227, 0.92);
+  box-shadow: 5px 8px 20px rgba(23, 22, 21, 0.18);
+}
+
+html[data-theme="pollock"] .header-actions.header-actions-floating > button {
+  width: 44px;
+  height: 46px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-theme="pollock"] .back-btn.back-btn-floating {
+  color: var(--ink);
+  border: 1px solid rgba(23, 22, 21, 0.18);
+  background: rgba(244, 239, 227, 0.92);
+  box-shadow: 5px 8px 20px rgba(23, 22, 21, 0.18);
+}
+
+/* Home wordmark and date */
+
+html[data-theme="pollock"] .home-header {
+  padding-top: calc(64px + var(--safe-top));
+}
+
+html[data-theme="pollock"] .home-header-actions {
+  top: calc(38px + var(--safe-top));
+  right: 0;
+}
+
+html[data-theme="pollock"] .home-header h1 {
+  font-family: var(--pollock-serif);
+  font-size: clamp(92px, 24vw, 138px);
+  font-weight: 600;
+  font-style: italic;
+  line-height: 0.74;
+  letter-spacing: -0.075em;
+}
+
+html[data-theme="pollock"] .home-header .x {
+  color: var(--red);
+  transform: rotate(-5deg) translate(1px, -2px);
+}
+
+html[data-theme="pollock"] .date-lockup {
+  margin-top: 34px;
+}
+
+html[data-theme="pollock"] .date {
+  margin: 0;
+  color: var(--ink-mid);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Workout-size circles */
+
+html[data-theme="pollock"] .picker {
+  margin-top: 46px;
+}
+
+html[data-theme="pollock"] .size-actions {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid rgba(23, 22, 21, 0.22);
+}
+
+html[data-theme="pollock"] .size-buttons {
+  gap: clamp(14px, 5vw, 28px);
+}
+
+html[data-theme="pollock"] .size-bubble,
+html[data-theme="pollock"] .size-bubble[data-size="3"] {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  width: clamp(74px, 21vw, 102px);
+  height: clamp(74px, 21vw, 102px);
+  padding: 5px 0 0;
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 47% 53% 49% 51% / 52% 46% 54% 48%;
+  box-shadow:
+    2px -1px 0 rgba(23, 22, 21, 0.58),
+    -2px 3px 0 rgba(23, 22, 21, 0.28),
+    0 9px 18px rgba(23, 22, 21, 0.12),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.35);
+  font-family: var(--pollock-brush);
+  font-size: clamp(32px, 9vw, 48px);
+  font-weight: 400;
+  font-style: normal;
+  line-height: 0.8;
+  transform: rotate(-2deg);
+}
+
+html[data-theme="pollock"] .size-bubble::after {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: clamp(7px, 2.2vw, 10px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .size-bubble[data-size="1"] {
+  background: #c8ddd6;
+}
+
+html[data-theme="pollock"] .size-bubble[data-size="1"]::after { content: "snack"; }
+
+html[data-theme="pollock"] .size-bubble[data-size="3"] {
+  width: clamp(96px, 27vw, 128px);
+  height: clamp(96px, 27vw, 128px);
+  background: #e6ad36;
+  border-width: 3px;
+  border-radius: 53% 47% 52% 48% / 48% 54% 46% 52%;
+  box-shadow:
+    3px 1px 0 rgba(23, 22, 21, 0.8),
+    -3px -2px 0 rgba(23, 22, 21, 0.42),
+    1px 5px 0 rgba(23, 22, 21, 0.26),
+    0 13px 24px rgba(23, 22, 21, 0.18),
+    inset 3px 3px 0 rgba(255, 255, 255, 0.28);
+  font-size: clamp(46px, 13vw, 66px);
+  transform: rotate(2deg);
+}
+
+html[data-theme="pollock"] .size-bubble[data-size="3"]::after,
+html[data-theme="pollock"] .size-bubble[data-size="5"]::after { content: "snacks"; }
+
+html[data-theme="pollock"] .size-bubble[data-size="5"] {
+  background: #cbc9db;
+  transform: rotate(3deg);
+}
+
+html[data-theme="pollock"] .size-bubble:hover {
+  border-color: var(--ink);
+  box-shadow:
+    3px 1px 0 rgba(23, 22, 21, 0.7),
+    -2px 3px 0 rgba(23, 22, 21, 0.32),
+    0 14px 24px rgba(23, 22, 21, 0.18);
+  transform: translateY(-2px) rotate(-1deg);
+}
+
+html[data-theme="pollock"] .more-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  justify-self: end;
+  padding: 0;
+  color: var(--ink);
+  border: 1px solid rgba(23, 22, 21, 0.16);
+  border-radius: 50%;
+  background: rgba(250, 247, 239, 0.84);
+  box-shadow: 2px 5px 14px rgba(23, 22, 21, 0.12);
+  transform: translateX(16px);
+}
+
+html[data-theme="pollock"] .more-link svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.4;
+}
+
+html[data-theme="pollock"] .more-link:hover,
+html[data-theme="pollock"] .more-link[aria-expanded="true"] {
+  color: var(--red);
+  background: #fbf8f0;
+}
+
+/* Today summary and sessions */
+
+html[data-theme="pollock"] .today-panel {
+  margin-top: 34px;
+  padding-bottom: 34px;
+}
+
+html[data-theme="pollock"] .panel-head {
+  align-items: center;
+}
+
+html[data-theme="pollock"] .section-label {
+  color: var(--ink);
+  font-family: var(--pollock-brush);
+  font-size: 27px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+html[data-theme="pollock"] .section-meta {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 3vw, 14px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .section-meta::first-letter {
+  color: var(--red);
+}
+
+html[data-theme="pollock"] .today-spark {
+  min-height: 54px;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+html[data-theme="pollock"] .spark-bar {
+  width: 8px;
+  clip-path: polygon(12% 0, 92% 5%, 100% 88%, 70% 100%, 4% 96%, 0 10%);
+}
+
+html[data-theme="pollock"] .spark-bar:nth-child(even) {
+  transform: rotate(2deg);
+}
+
+html[data-theme="pollock"] .today-sessions {
+  margin-top: 20px;
+  border-top: 1px solid rgba(23, 22, 21, 0.34);
+}
+
+html[data-theme="pollock"] .day-group {
+  display: block;
+  padding: 20px 0 0;
+  border-bottom: 1px solid rgba(23, 22, 21, 0.34);
+}
+
+html[data-theme="pollock"] .day-group-time {
+  padding: 0 0 10px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+html[data-theme="pollock"] .day-group-snacks {
+  counter-reset: pollock-snack;
+  gap: 0;
+}
+
+html[data-theme="pollock"] .day-snack {
+  counter-increment: pollock-snack;
+  display: grid;
+  grid-template-columns: 20px 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 74px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(23, 22, 21, 0.18);
+}
+
+html[data-theme="pollock"] .day-snack:first-child {
+  border-top: 0;
+}
+
+html[data-theme="pollock"] .day-snack::before {
+  content: counter(pollock-snack, decimal-leading-zero);
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--ink);
+  font-family: var(--pollock-brush);
+  font-size: 31px;
+  line-height: 1;
+  transform: rotate(-3deg);
+}
+
+html[data-theme="pollock"] .day-snack .day-bar {
+  grid-column: 1;
+  grid-row: 1;
+  width: 12px;
+  min-height: 38px;
+  clip-path: polygon(16% 0, 84% 5%, 100% 88%, 70% 100%, 5% 94%, 0 12%);
+  transform: rotate(2deg);
+}
+
+html[data-theme="pollock"] .day-snack .day-bar[data-intensity="1"] { height: 38px; }
+html[data-theme="pollock"] .day-snack .day-bar[data-intensity="2"] { height: 48px; }
+html[data-theme="pollock"] .day-snack .day-bar[data-intensity="3"] { height: 58px; }
+
+html[data-theme="pollock"] .day-snack-name {
+  grid-column: 3;
+  grid-row: 1;
+  color: var(--ink);
+  font-family: var(--pollock-brush);
+  font-size: clamp(21px, 6.3vw, 29px);
+  font-style: normal;
+  line-height: 1.08;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .day-group-stats {
+  margin: 0;
+  padding: 13px 0 15px;
+  border-top: 1px solid rgba(23, 22, 21, 0.34);
+  color: var(--ink-mid);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Primary navigation */
+
+html[data-theme="pollock"] .bottom-toolbar {
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid rgba(23, 22, 21, 0.14);
+  border-radius: 30px;
+  background: rgba(248, 244, 234, 0.9);
+  box-shadow: 5px 9px 24px rgba(23, 22, 21, 0.17);
+}
+
+html[data-theme="pollock"] .toolbar-button {
+  width: 54px;
+  height: 48px;
+  border-radius: 22px;
+  color: var(--ink);
+}
+
+html[data-theme="pollock"] .toolbar-button.active {
+  color: var(--red);
+  background: rgba(182, 61, 32, 0.08);
+}
+
+/* Headers, preview, history and library */
+
+html[data-theme="pollock"] .preview-header {
+  padding-top: calc(34px + var(--safe-top));
+}
+
+html[data-theme="pollock"] .preview-title,
+html[data-theme="pollock"] .done-title {
+  margin-top: 28px;
+  font-family: var(--pollock-brush);
+  font-size: clamp(44px, 12vw, 68px);
+  font-weight: 400;
+  font-style: normal;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .preview-sub,
+html[data-theme="pollock"] .preview-workout-stats,
+html[data-theme="pollock"] .settings-count,
+html[data-theme="pollock"] .done-stats {
+  color: var(--ink-mid);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .preview-list,
+html[data-theme="pollock"] .history-list,
+html[data-theme="pollock"] .done-summary {
+  border-color: rgba(23, 22, 21, 0.34);
+}
+
+html[data-theme="pollock"] .preview-item {
+  grid-template-columns: 42px minmax(0, 1fr) 44px;
+  gap: 14px;
+  min-height: 92px;
+  padding: 16px 0;
+  border-color: rgba(23, 22, 21, 0.28);
+}
+
+html[data-theme="pollock"] .preview-item .idx {
+  color: var(--ink);
+  font-family: var(--pollock-brush);
+  font-size: 24px;
+  transform: rotate(-3deg);
+}
+
+html[data-theme="pollock"] .preview-name-row {
+  align-items: center;
+}
+
+html[data-theme="pollock"] .preview-item .name,
+html[data-theme="pollock"] .settings-card .name,
+html[data-theme="pollock"] .settings-dialog-name {
+  color: var(--ink);
+  font-family: var(--pollock-brush);
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .preview-item .name {
+  font-size: clamp(20px, 5.7vw, 28px);
+}
+
+html[data-theme="pollock"] .preview-item .day-bar-slot {
+  width: 10px;
+  height: 48px;
+}
+
+html[data-theme="pollock"] .preview-item .day-bar,
+html[data-theme="pollock"] .settings-card .day-bar,
+html[data-theme="pollock"] .settings-dialog-preview .day-bar {
+  width: 10px;
+  min-height: 0;
+  clip-path: polygon(16% 0, 84% 5%, 100% 88%, 70% 100%, 5% 94%, 0 12%);
+}
+
+html[data-theme="pollock"] .preview-item .day-bar[data-intensity="1"],
+html[data-theme="pollock"] .settings-card .day-bar[data-intensity="1"] { height: 26px; }
+html[data-theme="pollock"] .preview-item .day-bar[data-intensity="2"],
+html[data-theme="pollock"] .settings-card .day-bar[data-intensity="2"] { height: 37px; }
+html[data-theme="pollock"] .preview-item .day-bar[data-intensity="3"],
+html[data-theme="pollock"] .settings-card .day-bar[data-intensity="3"] { height: 48px; }
+
+html[data-theme="pollock"] .preview-retry,
+html[data-theme="pollock"] .btn-begin {
+  color: var(--ink);
+}
+
+html[data-theme="pollock"] .preview-actions {
+  bottom: calc(18px + var(--safe-bottom));
+  width: max-content;
+  margin: auto;
+  padding: 6px 10px;
+  border: 1px solid rgba(23, 22, 21, 0.14);
+  border-radius: 28px;
+  background: rgba(248, 244, 234, 0.92);
+  box-shadow: 5px 9px 24px rgba(23, 22, 21, 0.17);
+  pointer-events: auto;
+}
+
+html[data-theme="pollock"] .archive-month-toggle {
+  padding: 22px 0 14px;
+  border-color: rgba(23, 22, 21, 0.32);
+  font-style: normal;
+}
+
+html[data-theme="pollock"] .archive-month-title {
+  font-family: var(--pollock-brush);
+  font-size: 27px;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .history-day {
+  border-color: rgba(23, 22, 21, 0.24);
+}
+
+html[data-theme="pollock"] .history-day-toggle {
+  grid-template-columns: 12px minmax(94px, auto) minmax(70px, 1fr) auto;
+  gap: 10px;
+  padding: 18px 0;
+}
+
+html[data-theme="pollock"] .archive-date,
+html[data-theme="pollock"] .archive-meta,
+html[data-theme="pollock"] .archive-month-meta {
+  color: var(--ink-mid);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .archive-spark {
+  gap: 4px;
+}
+
+html[data-theme="pollock"] .spark-bar-archive {
+  width: 5px;
+}
+
+html[data-theme="pollock"] .settings-list {
+  margin-top: 18px;
+}
+
+html[data-theme="pollock"] .settings-card {
+  padding: 18px 0;
+  border-color: rgba(23, 22, 21, 0.28);
+}
+
+html[data-theme="pollock"] .settings-snack-row {
+  gap: 16px;
+}
+
+html[data-theme="pollock"] .settings-card-copy .name {
+  font-size: clamp(19px, 5vw, 25px);
+}
+
+html[data-theme="pollock"] .settings-go-btn:hover,
+html[data-theme="pollock"] .settings-remove:hover:not(:disabled),
+html[data-theme="pollock"] .settings-save:hover {
+  color: var(--red);
+}
+
+/* Timer and completion */
+
+html[data-theme="pollock"] .view-run,
+html[data-theme="pollock"] .view-rest {
+  background-color: var(--paper);
+}
+
+html[data-theme="pollock"] .timer-category,
+html[data-theme="pollock"] .timer-step,
+html[data-theme="pollock"] .timer-round,
+html[data-theme="pollock"] .rest-label {
+  color: var(--ink-mid);
+  font-weight: 650;
+}
+
+html[data-theme="pollock"] .timer-name {
+  font-family: var(--pollock-brush);
+  font-size: clamp(48px, 14vw, 82px);
+  font-weight: 400;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .timer-seconds,
+html[data-theme="pollock"] .rest-seconds {
+  font-family: var(--pollock-serif);
+  font-weight: 600;
+  font-style: italic;
+}
+
+html[data-theme="pollock"] .timer-progress,
+html[data-theme="pollock"] .rest-bar {
+  height: 8px;
+  background: rgba(23, 22, 21, 0.12);
+  clip-path: polygon(0 25%, 100% 0, 98% 80%, 2% 100%);
+}
+
+html[data-theme="pollock"] .timer-stack-item {
+  font-family: var(--pollock-brush);
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .done-list-item {
+  border-bottom: 1px solid rgba(23, 22, 21, 0.18);
+  font-family: var(--pollock-brush);
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+/* Sheets, forms, and chips */
+
+html[data-theme="pollock"] .bottom-sheet-scrim,
+html[data-theme="pollock"] .settings-overlay-scrim {
+  background: rgba(23, 22, 21, 0.42);
+}
+
+html[data-theme="pollock"] .bottom-panel,
+html[data-theme="pollock"] .import-dialog {
+  color: var(--ink);
+  border: 1px solid rgba(23, 22, 21, 0.35);
+  background: rgba(247, 243, 233, 0.98);
+  box-shadow: 7px -10px 32px rgba(23, 22, 21, 0.18);
+}
+
+html[data-theme="pollock"] .bottom-panel-head h2,
+html[data-theme="pollock"] .settings-dialog-title {
+  font-family: var(--pollock-brush);
+  font-weight: 400;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .bottom-panel-close {
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+}
+
+html[data-theme="pollock"] .chip-row {
+  border-color: rgba(23, 22, 21, 0.22);
+}
+
+html[data-theme="pollock"] .chip {
+  min-width: 34px;
+  padding: 7px 9px;
+  color: var(--ink-mid);
+  border: 1px solid transparent;
+  border-radius: 16px;
+}
+
+html[data-theme="pollock"] .chip.active {
+  color: var(--ink);
+  border-color: rgba(23, 22, 21, 0.34);
+  background: rgba(255, 255, 255, 0.36);
+}
+
+html[data-theme="pollock"] .settings-input,
+html[data-theme="pollock"] .link-code-box,
+html[data-theme="pollock"] .link-url-box {
+  border-color: rgba(23, 22, 21, 0.3);
+  background: rgba(255, 255, 255, 0.38);
+}
+
+html[data-theme="pollock"] .theme-option[aria-pressed="true"] {
+  border-color: var(--red);
+  background: rgba(255, 255, 255, 0.34);
+}
+
+@media (max-width: 520px) {
+  html[data-theme="pollock"] .view-home,
+  html[data-theme="pollock"] .view-preview,
+  html[data-theme="pollock"] .view-history,
+  html[data-theme="pollock"] .view-settings,
+  html[data-theme="pollock"] .view-done {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+
+  html[data-theme="pollock"] .home-header {
+    padding-top: calc(74px + var(--safe-top));
+  }
+
+  html[data-theme="pollock"] .home-header-actions {
+    top: calc(28px + var(--safe-top));
+  }
+
+  html[data-theme="pollock"] .picker {
+    margin-top: 40px;
+  }
+
+  html[data-theme="pollock"] .size-actions {
+    grid-template-columns: minmax(0, 1fr) auto minmax(38px, 1fr);
+    gap: 6px;
+  }
+
+  html[data-theme="pollock"] .size-buttons {
+    gap: 10px;
+  }
+
+  html[data-theme="pollock"] .more-link {
+    width: 46px;
+    height: 46px;
+  }
+
+  html[data-theme="pollock"] .day-snack {
+    grid-template-columns: 16px 46px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  html[data-theme="pollock"] .history-day-toggle {
+    grid-template-columns: 12px minmax(82px, auto) minmax(48px, 1fr);
+  }
+
+  html[data-theme="pollock"] .archive-meta {
+    grid-column: 2 / -1;
+    padding-top: 5px;
+    text-align: left;
+  }
+}
+
+@media (max-width: 350px) {
+  html[data-theme="pollock"] .view-home,
+  html[data-theme="pollock"] .view-preview,
+  html[data-theme="pollock"] .view-history,
+  html[data-theme="pollock"] .view-settings,
+  html[data-theme="pollock"] .view-done {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  html[data-theme="pollock"] .home-header h1 {
+    font-size: 82px;
+  }
+
+  html[data-theme="pollock"] .size-buttons {
+    gap: 7px;
+  }
+
+  html[data-theme="pollock"] .size-bubble,
+  html[data-theme="pollock"] .size-bubble[data-size="3"] {
+    width: 70px;
+    height: 70px;
+    font-size: 31px;
+  }
+
+  html[data-theme="pollock"] .size-bubble[data-size="3"] {
+    width: 88px;
+    height: 88px;
+    font-size: 43px;
+  }
+
+  html[data-theme="pollock"] .more-link {
+    width: 40px;
+    height: 40px;
+    transform: translateX(10px);
+  }
+}
+
+@media (min-width: 681px) {
+  html[data-theme="pollock"] .view-home,
+  html[data-theme="pollock"] .view-preview,
+  html[data-theme="pollock"] .view-history,
+  html[data-theme="pollock"] .view-settings,
+  html[data-theme="pollock"] .view-done,
+  html[data-theme="pollock"] .view-run,
+  html[data-theme="pollock"] .view-rest {
+    border-right: 1px solid rgba(23, 22, 21, 0.2);
+    border-left: 1px solid rgba(23, 22, 21, 0.2);
+  }
+}

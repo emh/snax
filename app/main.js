@@ -122,6 +122,17 @@ const TODAY_GRAFFITI = Object.freeze({
     Object.freeze(["ENOUGH", "FOR TODAY", "COME BACK", "HUNGRY"]),
   ]),
 });
+const POLLOCK_SPLATTER_PALETTE = Object.freeze([
+  "#161514",
+  "#161514",
+  "#161514",
+  "#c2471f",
+  "#db7b22",
+  "#168c82",
+  "#267eb3",
+  "#874a76",
+  "#d6a52b",
+]);
 
 let toastTimer;
 let syncClient = null;
@@ -134,6 +145,7 @@ let adminPanelTimer = null;
 let editorPanelTimer = null;
 let cancelPanelTimer = null;
 let workoutSetupTimer = null;
+let pollockSplatterFrame = null;
 
 function initAudio() {
   if (!audioCtx) {
@@ -233,6 +245,7 @@ function showView(name) {
   requestAnimationFrame(() => {
     window.scrollTo(0, 0);
     syncFloatingBackButton();
+    schedulePollockSplatters(name);
   });
 }
 
@@ -573,6 +586,128 @@ function stableTextHash(value) {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+function pollockRandom(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function pollockNumber(value) {
+  return Number(value).toFixed(1);
+}
+
+function pollockBlobPath(centerX, centerY, radius) {
+  const pointCount = 12 + Math.floor(Math.random() * 7);
+  const points = Array.from({ length: pointCount }, (_, index) => {
+    const angle = (Math.PI * 2 * index) / pointCount;
+    const pointRadius = radius * pollockRandom(0.58, 1.36);
+    return {
+      x: centerX + Math.cos(angle) * pointRadius,
+      y: centerY + Math.sin(angle) * pointRadius,
+    };
+  });
+
+  return `${points
+    .map((point, index) => `${index === 0 ? "M" : "L"}${pollockNumber(point.x)} ${pollockNumber(point.y)}`)
+    .join(" ")} Z`;
+}
+
+function pollockSplatterX(width, radius) {
+  if (Math.random() < 0.68) {
+    return Math.random() < 0.5
+      ? pollockRandom(-radius, width * 0.24)
+      : pollockRandom(width * 0.76, width + radius);
+  }
+  return pollockRandom(0, width);
+}
+
+function pollockTodaySnackCount() {
+  return resolveEntrySnacks(findHistoryEntry(state.history, todayKey())).length;
+}
+
+function buildPollockSplatterSvg(width, height, snackCount) {
+  const areaFactor = Math.min(3.5, Math.max(1, height / Math.max(width * 2, 1)));
+  const clusterCount = Math.min(90, Math.round((6 + Math.min(snackCount, 32) * 1.05) * areaFactor));
+  const strokeCount = Math.min(14, 2 + Math.floor(snackCount / 5) + Math.floor(areaFactor - 1));
+  const marks = [];
+
+  for (let index = 0; index < strokeCount; index += 1) {
+    const color = POLLOCK_SPLATTER_PALETTE[Math.floor(Math.random() * POLLOCK_SPLATTER_PALETTE.length)];
+    const startX = pollockRandom(-width * 0.16, width * 0.7);
+    const startY = pollockRandom(0, height);
+    const endX = startX + pollockRandom(width * 0.32, width * 0.9);
+    const endY = startY + pollockRandom(-height * 0.14, height * 0.14);
+    const controlX1 = startX + (endX - startX) * pollockRandom(0.2, 0.42);
+    const controlY1 = startY + pollockRandom(-height * 0.12, height * 0.12);
+    const controlX2 = startX + (endX - startX) * pollockRandom(0.58, 0.82);
+    const controlY2 = endY + pollockRandom(-height * 0.12, height * 0.12);
+    marks.push(
+      `<path d="M${pollockNumber(startX)} ${pollockNumber(startY)} C${pollockNumber(controlX1)} ${pollockNumber(controlY1)} ${pollockNumber(controlX2)} ${pollockNumber(controlY2)} ${pollockNumber(endX)} ${pollockNumber(endY)}" fill="none" stroke="${color}" stroke-width="${pollockNumber(pollockRandom(0.7, 2.8))}" stroke-linecap="round" opacity="${pollockNumber(pollockRandom(0.22, 0.48))}"/>`,
+    );
+  }
+
+  for (let index = 0; index < clusterCount; index += 1) {
+    const color = POLLOCK_SPLATTER_PALETTE[Math.floor(Math.random() * POLLOCK_SPLATTER_PALETTE.length)];
+    const isLarge = Math.random() < 0.12;
+    const radius = isLarge ? pollockRandom(22, 48) : pollockRandom(4, 17);
+    const centerX = pollockSplatterX(width, radius);
+    const centerY = pollockRandom(-radius, height + radius);
+    const opacity = color === "#161514" ? pollockRandom(0.34, 0.58) : pollockRandom(0.42, 0.68);
+    marks.push(
+      `<path d="${pollockBlobPath(centerX, centerY, radius)}" fill="${color}" opacity="${pollockNumber(opacity)}"/>`,
+    );
+
+    const dropletCount = 4 + Math.floor(Math.random() * (isLarge ? 10 : 7));
+    for (let dropletIndex = 0; dropletIndex < dropletCount; dropletIndex += 1) {
+      const angle = pollockRandom(0, Math.PI * 2);
+      const distance = radius * pollockRandom(1.35, isLarge ? 4.6 : 3.4);
+      const dropletRadius = Math.max(0.7, radius * pollockRandom(0.06, 0.2));
+      const dropletX = centerX + Math.cos(angle) * distance;
+      const dropletY = centerY + Math.sin(angle) * distance;
+      marks.push(
+        `<circle cx="${pollockNumber(dropletX)}" cy="${pollockNumber(dropletY)}" r="${pollockNumber(dropletRadius)}" fill="${color}" opacity="${pollockNumber(opacity * pollockRandom(0.66, 1))}"/>`,
+      );
+    }
+
+    if (Math.random() < 0.24) {
+      const dripLength = pollockRandom(radius * 1.8, radius * 5.2);
+      marks.push(
+        `<path d="M${pollockNumber(centerX)} ${pollockNumber(centerY)} Q${pollockNumber(centerX + pollockRandom(-radius, radius))} ${pollockNumber(centerY + dripLength * 0.45)} ${pollockNumber(centerX + pollockRandom(-radius * 0.35, radius * 0.35))} ${pollockNumber(centerY + dripLength)}" fill="none" stroke="${color}" stroke-width="${pollockNumber(pollockRandom(0.8, 2.4))}" stroke-linecap="round" opacity="${pollockNumber(opacity * 0.76)}"/>`,
+      );
+    }
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><g style="mix-blend-mode:multiply">${marks.join("")}</g></svg>`;
+}
+
+function renderPollockSplatters(viewName = state.currentView) {
+  const views = document.querySelectorAll(".view");
+  if (globalThis.SNAX_THEME?.current() !== "pollock") {
+    views.forEach((view) => {
+      view.style.removeProperty("--pollock-splatter-image");
+      delete view.dataset.pollockSplatterCount;
+    });
+    return;
+  }
+
+  const view = $(`view-${viewName}`);
+  if (!view?.classList.contains("active")) return;
+  const rect = view.getBoundingClientRect();
+  const width = Math.max(320, Math.ceil(rect.width || window.innerWidth));
+  const height = Math.max(window.innerHeight, view.scrollHeight, Math.ceil(rect.height));
+  const snackCount = pollockTodaySnackCount();
+  const svg = buildPollockSplatterSvg(width, height, snackCount);
+  const image = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  view.style.setProperty("--pollock-splatter-image", image);
+  view.dataset.pollockSplatterCount = String(snackCount);
+}
+
+function schedulePollockSplatters(viewName = state.currentView) {
+  window.cancelAnimationFrame(pollockSplatterFrame);
+  pollockSplatterFrame = window.requestAnimationFrame(() => {
+    pollockSplatterFrame = null;
+    renderPollockSplatters(viewName);
+  });
 }
 
 function renderSessionGroups(workouts) {
@@ -2268,6 +2403,7 @@ window.snaxDev = {
 async function init() {
   const isDevHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
   globalThis.SNAX_THEME?.syncControls();
+  document.addEventListener("snax:themechange", () => schedulePollockSplatters(state.currentView));
   document.querySelectorAll('[data-action="dev-complete-workout"]').forEach((button) => {
     button.hidden = !isDevHost;
     button.addEventListener("click", completeWorkoutForDev);
@@ -2275,6 +2411,7 @@ async function init() {
   attachChipHandlers();
   attachSizeHandlers();
   renderHome();
+  schedulePollockSplatters("home");
   syncSettingsButtonHost();
   document.addEventListener("visibilitychange", handleVisibilityChange);
   document.addEventListener(
@@ -2286,7 +2423,10 @@ async function init() {
     },
     true,
   );
-  window.addEventListener("resize", scheduleSparkOverflowUpdate);
+  window.addEventListener("resize", () => {
+    scheduleSparkOverflowUpdate();
+    schedulePollockSplatters(state.currentView);
+  });
 
   $("link-btn").addEventListener("click", () => {
     toggleLinkPanel().catch((error) => {
