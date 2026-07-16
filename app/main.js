@@ -75,6 +75,7 @@ const state = {
   editingIsNew: false,
   editingDraft: null,
   currentView: "home",
+  graffitiVisit: 0,
   pendingImport: null,
   importModes: {
     history: "merge",
@@ -85,6 +86,42 @@ const state = {
 const $ = (id) => document.getElementById(id);
 const EXPORT_SCHEMA = "snax.history.v2";
 const TIMER_WAKE_LOCK_TYPE = "screen";
+const ICON_SPRITE_PATH = "./assets/basquiat-exercise-icons.png";
+const TODAY_ICONS = Object.freeze([
+  Object.freeze({ name: "kettlebell", viewBox: "95 170 320 320" }),
+  Object.freeze({ name: "dumbbell", viewBox: "440 165 410 310" }),
+  Object.freeze({ name: "bicep", viewBox: "890 135 320 355" }),
+  Object.freeze({ name: "runner", viewBox: "180 555 350 275" }),
+  Object.freeze({ name: "pushup", viewBox: "655 575 420 255" }),
+  Object.freeze({ name: "jump-rope", viewBox: "225 840 390 355" }),
+  Object.freeze({ name: "boxing-glove", viewBox: "700 865 385 335" }),
+]);
+const TODAY_GRAFFITI = Object.freeze({
+  none: Object.freeze([
+    Object.freeze(["MAKE YOUR", "MARK"]),
+    Object.freeze(["BEGIN", "ANYWHERE"]),
+    Object.freeze(["ONE IS", "ENOUGH"]),
+    Object.freeze(["THE BODY", "IS WAITING"]),
+  ]),
+  light: Object.freeze([
+    Object.freeze(["YOU", "SHOWED UP"]),
+    Object.freeze(["SMALL WORK", "REAL WORK"]),
+    Object.freeze(["ONE DOWN", "KEEP MOVING"]),
+    Object.freeze(["MOTION MAKES", "MOMENTUM"]),
+  ]),
+  steady: Object.freeze([
+    Object.freeze(["MOVE WELL", "LIVE RAW"]),
+    Object.freeze(["TRAIN WITH", "INTENT"]),
+    Object.freeze(["KEEP THE FIRE", "HONEST"]),
+    Object.freeze(["STRONGER", "BY DOING"]),
+  ]),
+  full: Object.freeze([
+    Object.freeze(["WORK DONE", "HEAD HIGH"]),
+    Object.freeze(["THE WORK", "IS SHOWING"]),
+    Object.freeze(["BIG DAY", "DEEP BREATH"]),
+    Object.freeze(["ENOUGH", "FOR TODAY", "COME BACK", "HUNGRY"]),
+  ]),
+});
 
 let toastTimer;
 let syncClient = null;
@@ -440,12 +477,99 @@ function renderDate() {
 }
 
 function renderToday() {
-  const entry = findHistoryEntry(state.history, todayKey());
+  const dateKey = todayKey();
+  const entry = findHistoryEntry(state.history, dateKey);
   const snacks = resolveEntrySnacks(entry);
   $("today-meta").textContent = formatMetaText(snacks);
   $("today-spark").innerHTML = renderSparkBars(snacks, "today", "quiet so far");
   $("today-sessions").innerHTML = renderSessionGroups(resolveEntryWorkouts(entry));
+  renderTodayGraffiti(dateKey, snacks.length);
+  renderTodayIconography(dateKey, snacks.length);
   scheduleSparkOverflowUpdate();
+}
+
+function renderTodayGraffiti(dateKey, snackCount) {
+  const tier = snackCount === 0 ? "none" : snackCount < 10 ? "light" : snackCount < 20 ? "steady" : "full";
+  const phrases = TODAY_GRAFFITI[tier];
+  const phraseSeed = stableTextHash(`${dateKey}:${tier}:phrase`);
+  const markSeed = stableTextHash(`${dateKey}:${tier}:mark:${state.graffitiVisit}`);
+  const phraseIndex = (phraseSeed + state.graffitiVisit) % phrases.length;
+  const graffiti = $("today-graffiti");
+  const bottomGraffiti = $("today-graffiti-bottom");
+
+  graffiti.dataset.tier = tier;
+  graffiti.dataset.variant = String(markSeed % 4);
+  replaceGraffitiLines(graffiti, phrases[phraseIndex]);
+
+  bottomGraffiti.hidden = snackCount === 0;
+  if (snackCount === 0) {
+    bottomGraffiti.replaceChildren();
+    return;
+  }
+
+  const bottomPhraseSeed = stableTextHash(`${dateKey}:${tier}:bottom-phrase`);
+  const bottomMarkSeed = stableTextHash(`${dateKey}:${tier}:bottom-mark:${state.graffitiVisit}`);
+  let bottomPhraseIndex = (bottomPhraseSeed + state.graffitiVisit) % phrases.length;
+  if (bottomPhraseIndex === phraseIndex) {
+    bottomPhraseIndex = (bottomPhraseIndex + 1) % phrases.length;
+  }
+  bottomGraffiti.dataset.tier = tier;
+  bottomGraffiti.dataset.variant = String(bottomMarkSeed % 4);
+  replaceGraffitiLines(bottomGraffiti, phrases[bottomPhraseIndex]);
+}
+
+function replaceGraffitiLines(element, phrase) {
+  element.replaceChildren(
+    ...phrase.map((line) => {
+      const span = document.createElement("span");
+      span.textContent = line;
+      return span;
+    }),
+  );
+}
+
+function renderTodayIconography(dateKey, snackCount) {
+  const dateIconIndex = (stableTextHash(`${dateKey}:date-icon`) + state.graffitiVisit) % TODAY_ICONS.length;
+  let bottomIconIndex = (stableTextHash(`${dateKey}:bottom-icon`) + state.graffitiVisit) % TODAY_ICONS.length;
+  if (bottomIconIndex === dateIconIndex) {
+    bottomIconIndex = (bottomIconIndex + 1) % TODAY_ICONS.length;
+  }
+
+  renderTodayIcon($("today-icon-date"), TODAY_ICONS[dateIconIndex]);
+
+  const bottomFlourishes = $("today-bottom-flourishes");
+  bottomFlourishes.hidden = snackCount === 0;
+  if (snackCount === 0) {
+    $("today-icon-bottom").replaceChildren();
+    return;
+  }
+
+  renderTodayIcon($("today-icon-bottom"), TODAY_ICONS[bottomIconIndex]);
+}
+
+function renderTodayIcon(element, icon) {
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNamespace, "svg");
+  const image = document.createElementNS(svgNamespace, "image");
+
+  svg.setAttribute("viewBox", icon.viewBox);
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.setAttribute("focusable", "false");
+  svg.dataset.icon = icon.name;
+  image.setAttribute("href", ICON_SPRITE_PATH);
+  image.setAttribute("width", "1254");
+  image.setAttribute("height", "1254");
+  svg.append(image);
+  element.replaceChildren(svg);
+}
+
+function stableTextHash(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 function renderSessionGroups(workouts) {
@@ -1304,6 +1428,9 @@ function openSettings() {
 }
 
 function goHome() {
+  if (state.currentView === "history" || state.currentView === "settings") {
+    state.graffitiVisit += 1;
+  }
   state.editingIndex = null;
   state.editingIsNew = false;
   state.editingDraft = null;

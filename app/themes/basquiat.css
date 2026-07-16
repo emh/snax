@@ -62,6 +62,175 @@ html[data-theme="basquiat"] .home-header {
   padding-top: calc(52px + var(--safe-top));
 }
 
+html[data-theme="basquiat"] .today-graffiti {
+  position: absolute;
+  z-index: 2;
+  top: calc(66px + var(--safe-top));
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 86px;
+  margin: 0;
+  color: var(--ink);
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-size: clamp(8px, 2.55vw, 11px);
+  line-height: 1.35;
+  letter-spacing: 0.015em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+html[data-theme="basquiat"] .today-graffiti span {
+  display: block;
+  white-space: nowrap;
+}
+
+html[data-theme="basquiat"] .today-graffiti span:nth-child(even) {
+  margin-left: 5px;
+}
+
+html[data-theme="basquiat"] .today-graffiti span:last-child {
+  position: relative;
+  padding-bottom: 5px;
+  border-bottom: 2px solid currentColor;
+}
+
+html[data-theme="basquiat"] .today-graffiti span:last-child::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  bottom: -5px;
+  left: -3px;
+  height: 2px;
+  background: currentColor;
+  transform: rotate(-3deg);
+}
+
+html[data-theme="basquiat"] .today-graffiti::after {
+  content: "*";
+  display: block;
+  margin: 2px 0 0 14px;
+  font-size: 22px;
+  line-height: 0.9;
+}
+
+html[data-theme="basquiat"] .today-graffiti[data-variant="0"] { transform: rotate(-3deg); }
+html[data-theme="basquiat"] .today-graffiti[data-variant="1"] { top: calc(78px + var(--safe-top)); transform: rotate(2deg); }
+html[data-theme="basquiat"] .today-graffiti[data-variant="2"] { left: 12px; transform: rotate(-1deg); }
+html[data-theme="basquiat"] .today-graffiti[data-variant="3"] { top: calc(72px + var(--safe-top)); left: 10px; transform: rotate(3deg); }
+
+html[data-theme="basquiat"] .today-icon {
+  display: block;
+  flex: 0 0 auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+html[data-theme="basquiat"] .today-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+html[data-theme="basquiat"] .date-lockup {
+  position: relative;
+  min-height: 60px;
+  margin-top: 17px;
+}
+
+html[data-theme="basquiat"] .today-icon-date {
+  position: absolute;
+  top: -15px;
+  left: calc(50% + 92px);
+  width: 58px;
+  height: 54px;
+  box-sizing: content-box;
+  padding-left: 24px;
+  transform: rotate(3deg);
+}
+
+html[data-theme="basquiat"] .today-bottom-flourishes {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 26px 4px 4px;
+}
+
+html[data-theme="basquiat"] .today-bottom-flourishes[hidden] {
+  display: none;
+}
+
+html[data-theme="basquiat"] .today-icon-bottom {
+  width: 78px;
+  height: 68px;
+  transform: rotate(-3deg);
+}
+
+html[data-theme="basquiat"] .today-graffiti-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: max-content;
+  max-width: min(72vw, 220px);
+  margin: 0 0 0 auto;
+  color: var(--ink);
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-size: clamp(11px, 3.4vw, 15px);
+  line-height: 1.35;
+  letter-spacing: 0.015em;
+  text-align: right;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+html[data-theme="basquiat"] .today-graffiti-bottom[hidden] {
+  display: none;
+}
+
+html[data-theme="basquiat"] .today-graffiti-bottom span {
+  display: block;
+  white-space: nowrap;
+}
+
+html[data-theme="basquiat"] .today-graffiti-bottom span:nth-child(even) {
+  margin-right: 5px;
+}
+
+html[data-theme="basquiat"] .today-graffiti-bottom span:last-child {
+  position: relative;
+  padding-bottom: 5px;
+  border-bottom: 2px solid currentColor;
+}
+
+html[data-theme="basquiat"] .today-graffiti-bottom span:last-child::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -5px;
+  left: -4px;
+  height: 2px;
+  background: currentColor;
+  transform: rotate(2deg);
+}
+
+html[data-theme="basquiat"] .today-graffiti-bottom::before {
+  content: "*";
+  align-self: flex-end;
+  margin: 0 12px 3px 0;
+  font-size: 24px;
+  line-height: 0.65;
+}
+
+html[data-theme="basquiat"] .today-graffiti-bottom[data-variant="0"] { transform: rotate(2deg); }
+html[data-theme="basquiat"] .today-graffiti-bottom[data-variant="1"] { margin-right: 8px; transform: rotate(-2deg); }
+html[data-theme="basquiat"] .today-graffiti-bottom[data-variant="2"] { margin-right: 4px; transform: rotate(1deg); }
+html[data-theme="basquiat"] .today-graffiti-bottom[data-variant="3"] { margin-right: 10px; transform: rotate(-3deg); }
+
 html[data-theme="basquiat"] .home-header h1 {
   font-family: "Permanent Marker", "Marker Felt", cursive;
   font-size: clamp(76px, 20vw, 112px);
@@ -80,7 +249,7 @@ html[data-theme="basquiat"] .home-header .x {
 html[data-theme="basquiat"] .date {
   position: relative;
   width: max-content;
-  margin: 17px auto 0;
+  margin: 0 auto;
   padding: 0 8px 8px;
   color: var(--ink);
   font-size: 13px;
@@ -492,6 +661,21 @@ html[data-theme="basquiat"] .library-header-actions.header-actions-floating {
 }
 
 @media (max-width: 560px) {
+  html[data-theme="basquiat"] .today-graffiti {
+    width: 72px;
+  }
+
+  html[data-theme="basquiat"] .today-icon-date {
+    left: calc(50% + 84px);
+    width: 52px;
+    height: 48px;
+  }
+
+  html[data-theme="basquiat"] .today-icon-bottom {
+    width: 68px;
+    height: 60px;
+  }
+
   html[data-theme="basquiat"] .size-buttons {
     gap: 18px;
   }

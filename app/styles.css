@@ -254,6 +254,13 @@ body.cancel-sheet-open {
   animation: fade-slide-in 520ms var(--ease) both;
 }
 
+.today-graffiti,
+.today-graffiti-bottom,
+.today-icon,
+.today-bottom-flourishes {
+  display: none;
+}
+
 .home-link-button {
   position: absolute;
   z-index: 2;
