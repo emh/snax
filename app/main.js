@@ -18,6 +18,7 @@ import {
   formatTimerSeconds,
   getLoad,
   hydrateExercise,
+  hydrateFavouriteWorkout,
   hydrateSnack,
   hydrateWorkout,
   pickStack,
@@ -57,8 +58,10 @@ const state = {
   restHandle: null,
   completed: [],
   currentStackId: "",
+  lastCompletedWorkout: null,
   history: loadedState.history,
   library: loadedState.library,
+  favourites: loadedState.favourites,
   deviceId: loadedState.deviceId,
   clock: loadedState.clock,
   sync: loadedState.sync,
@@ -80,11 +83,12 @@ const state = {
   importModes: {
     history: "merge",
     library: "merge",
+    favourites: "merge",
   },
 };
 
 const $ = (id) => document.getElementById(id);
-const EXPORT_SCHEMA = "snax.history.v2";
+const EXPORT_SCHEMA = "snax.history.v3";
 const TIMER_WAKE_LOCK_TYPE = "screen";
 const ICON_SPRITE_PATH = "./assets/basquiat-exercise-icons.png";
 const TODAY_ICONS = Object.freeze([
@@ -192,6 +196,7 @@ function save(markChange = true) {
   saveAppState({
     history: state.history,
     library: state.library,
+    favourites: state.favourites,
     deviceId: state.deviceId,
     clock: state.clock,
     sync: state.sync,
@@ -205,6 +210,7 @@ function persistRemoteState() {
   saveAppState({
     history: state.history,
     library: state.library,
+    favourites: state.favourites,
     deviceId: state.deviceId,
     clock: state.clock,
     sync: state.sync,
@@ -272,7 +278,7 @@ function syncFloatingBackButton() {
 function renderBottomToolbar() {
   const toolbar = $("bottom-toolbar");
   const activeTab = state.currentView === "settings" ? "settings" : state.currentView;
-  toolbar.hidden = !["home", "history", "settings"].includes(activeTab);
+  toolbar.hidden = !["home", "history", "favourites", "settings"].includes(activeTab);
   toolbar.querySelectorAll("[data-tab]").forEach((button) => {
     const isActive = button.dataset.tab === activeTab;
     button.classList.toggle("active", isActive);
@@ -377,6 +383,28 @@ function resolveEntryWorkouts(entry) {
         .map((exercise) => ({ ...exercise, workDuration: workout.workDuration })),
     }))
     .filter((workout) => workout.exercises.length > 0);
+}
+
+function findRecordedWorkout(id) {
+  for (const entry of state.history) {
+    const workout = entry.workouts.find((candidate) => candidate.id === id);
+    if (workout) return workout;
+  }
+  return null;
+}
+
+function favouriteFromRecordedWorkout(workout) {
+  const rounds = Math.max(1, Number(workout?.rounds) || 1);
+  const completedExercises = Array.isArray(workout?.exercises) ? workout.exercises : [];
+  const baseExerciseCount = completedExercises.length ? Math.max(1, Math.ceil(completedExercises.length / rounds)) : 0;
+  return hydrateFavouriteWorkout({
+    id: workout?.id,
+    createdAt: workout?.at,
+    rounds,
+    workDuration: workout?.workDuration,
+    restDuration: workout?.restDuration,
+    exercises: resolveSnacks(completedExercises.slice(0, baseExerciseCount), state.library),
+  });
 }
 
 function renderSparkBars(snacks, variant, emptyLabel, animate = true) {
@@ -715,6 +743,7 @@ function renderSessionGroups(workouts) {
     .slice()
     .sort((left, right) => String(left.at || "").localeCompare(String(right.at || "")))
     .map((workout) => {
+      const isFavourite = state.favourites.some((favourite) => favourite.id === workout.id);
       return `
         <div class="day-group">
           <div class="day-group-time">${workout.at ? esc(formatTime(workout.at)) : "--"}</div>
@@ -729,7 +758,12 @@ function renderSessionGroups(workouts) {
                 `,
               )
               .join("")}
-            <div class="day-group-stats">${workout.rounds > 1 ? `${workout.rounds} rounds / ` : ""}${workout.workDuration}s work / ${workout.restDuration}s rest / load ${getLoad(workout.exercises)}</div>
+            <div class="workout-stats-row">
+              <button class="workout-favourite-button${isFavourite ? " is-favourite" : ""}" data-action="toggle-workout-favourite" data-workout-id="${esc(workout.id)}" type="button" aria-label="${isFavourite ? "remove workout from favourites" : "add workout to favourites"}" aria-pressed="${isFavourite}">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2.6 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.31l-5.8 3.05 1.11-6.46-4.7-4.58 6.49-.94z"></path></svg>
+              </button>
+              <div class="day-group-stats">${workout.rounds > 1 ? `${workout.rounds} rounds / ` : ""}${workout.workDuration}s work / ${workout.restDuration}s rest / load ${getLoad(workout.exercises)}</div>
+            </div>
           </div>
         </div>
       `;
@@ -830,6 +864,7 @@ function currentSnapshot() {
   return {
     history: state.history,
     library: state.library,
+    favourites: state.favourites,
   };
 }
 
@@ -856,12 +891,17 @@ function refreshVisibleViews() {
     renderHistory();
   }
 
+  if ($("view-favourites").classList.contains("active")) {
+    renderFavourites();
+  }
+
 }
 
 function applyRemoteSnapshot(snapshot, version) {
   const hydrated = hydrateSnapshot(snapshot);
   state.history = hydrated.history;
   state.library = hydrated.library;
+  state.favourites = hydrated.favourites;
   state.editingIndex = null;
   state.editingIsNew = false;
   state.editingDraft = null;
@@ -1469,6 +1509,14 @@ function renderTimerStack(targetId) {
 }
 
 function finishRun() {
+  state.lastCompletedWorkout = hydrateFavouriteWorkout({
+    id: state.currentStackId,
+    createdAt: state.completed[0]?.at || new Date().toISOString(),
+    rounds: state.rounds,
+    workDuration: state.workDuration,
+    restDuration: state.restDuration,
+    exercises: state.baseStack,
+  });
   const entry = todayEntry();
   entry.workouts.push({
     id: state.currentStackId,
@@ -1520,7 +1568,104 @@ function renderDone() {
     )
     .join("");
   $("done-stats").textContent = `${state.rounds} round${state.rounds === 1 ? "" : "s"} / ${state.workDuration}s work / ${state.restDuration}s rest / load ${getLoad(completed, state.workDuration)}`;
+  const favouriteButton = $("done-favourite-btn");
+  const isFavourite = Boolean(
+    state.lastCompletedWorkout && state.favourites.some((favourite) => favourite.id === state.lastCompletedWorkout.id),
+  );
+  favouriteButton.classList.toggle("is-favourite", isFavourite);
+  favouriteButton.setAttribute("aria-pressed", String(isFavourite));
+  favouriteButton.setAttribute("aria-label", isFavourite ? "remove workout from favourites" : "add workout to favourites");
   scheduleSparkOverflowUpdate();
+}
+
+function toggleCompletedWorkoutFavourite() {
+  const workout = state.lastCompletedWorkout;
+  if (!workout) return;
+
+  toggleFavouriteWorkout(workout);
+  renderDone();
+}
+
+function toggleFavouriteWorkout(workout) {
+  if (!workout || workout.exercises.length === 0) return null;
+
+  const existingIndex = state.favourites.findIndex((favourite) => favourite.id === workout.id);
+  const isFavourite = existingIndex < 0;
+  if (existingIndex >= 0) {
+    state.favourites.splice(existingIndex, 1);
+    toast("removed from favourites");
+  } else {
+    state.favourites.unshift(hydrateFavouriteWorkout(workout));
+    toast("added to favourites");
+  }
+
+  save();
+  return isFavourite;
+}
+
+function updateWorkoutFavouriteButton(button, isFavourite) {
+  if (!(button instanceof HTMLButtonElement) || typeof isFavourite !== "boolean") return;
+  button.classList.toggle("is-favourite", isFavourite);
+  button.setAttribute("aria-pressed", String(isFavourite));
+  button.setAttribute("aria-label", isFavourite ? "remove workout from favourites" : "add workout to favourites");
+}
+
+function toggleRecordedWorkoutFavourite(id, button) {
+  const workout = findRecordedWorkout(id);
+  if (!workout) return;
+
+  const isFavourite = toggleFavouriteWorkout(favouriteFromRecordedWorkout(workout));
+  updateWorkoutFavouriteButton(button, isFavourite);
+}
+
+function renderFavourites() {
+  const count = state.favourites.length;
+  $("favourites-meta").textContent = `${count} favourite${count === 1 ? "" : "s"}`;
+  $("favourites-list").innerHTML = count
+    ? state.favourites
+        .map((favourite) => {
+          const exerciseNames = favourite.exercises.map((exercise) => exercise.name).join(", ");
+          return `
+            <article class="favourite-card">
+              <div class="favourite-copy">
+                <p class="favourite-exercises">${esc(exerciseNames)}</p>
+                <p class="favourite-settings">${favourite.rounds} round${favourite.rounds === 1 ? "" : "s"} / ${favourite.workDuration}s work / ${favourite.restDuration}s rest</p>
+              </div>
+              <button class="favourite-card-star" data-action="remove-favourite" data-favourite-id="${esc(favourite.id)}" type="button" aria-label="remove workout from favourites" aria-pressed="true">
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2.6 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.31l-5.8 3.05 1.11-6.46-4.7-4.58 6.49-.94z"></path></svg>
+              </button>
+              <button class="settings-go-btn favourite-play" data-action="play-favourite" data-favourite-id="${esc(favourite.id)}" type="button" aria-label="play favourite workout: ${esc(exerciseNames)}">
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg>
+              </button>
+            </article>
+          `;
+        })
+        .join("")
+    : '<p class="favourites-empty">favourite a completed workout and it will show up here</p>';
+}
+
+function removeFavouriteFromScreen(id, card) {
+  const favourite = state.favourites.find((workout) => workout.id === id);
+  if (!favourite || !(card instanceof HTMLElement)) return;
+
+  toggleFavouriteWorkout(favourite);
+  card.remove();
+  const count = state.favourites.length;
+  $("favourites-meta").textContent = `${count} favourite${count === 1 ? "" : "s"}`;
+  if (count === 0) {
+    $("favourites-list").innerHTML = '<p class="favourites-empty">favourite a completed workout and it will show up here</p>';
+  }
+}
+
+function playFavouriteWorkout(id) {
+  const favourite = state.favourites.find((workout) => workout.id === id);
+  if (!favourite || favourite.exercises.length === 0) return;
+
+  state.baseStack = favourite.exercises.map((exercise, index) => hydrateExercise(exercise, index));
+  state.rounds = favourite.rounds;
+  state.workDuration = favourite.workDuration;
+  state.restDuration = favourite.restDuration;
+  beginRun();
 }
 
 function togglePause() {
@@ -1566,7 +1711,7 @@ function openSettings() {
 }
 
 function goHome() {
-  if (state.currentView === "history" || state.currentView === "settings") {
+  if (["history", "favourites", "settings"].includes(state.currentView)) {
     state.graffitiVisit += 1;
   }
   state.editingIndex = null;
@@ -1906,6 +2051,7 @@ function exportJson() {
     exportedAt: new Date().toISOString(),
     history: state.history,
     library: state.library,
+    favourites: state.favourites,
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1937,6 +2083,7 @@ function parseImportPayload(payload) {
     return {
       history: hydrateImportedHistory(payload),
       library: [],
+      favourites: [],
     };
   }
 
@@ -1947,14 +2094,28 @@ function parseImportPayload(payload) {
 
   const hasHistory = Array.isArray(snapshot.history);
   const hasLibrary = Array.isArray(snapshot.library);
-  if (!hasHistory && !hasLibrary) {
-    throw new Error("that json does not include snax history or library");
+  const hasFavourites = Array.isArray(snapshot.favourites);
+  if (!hasHistory && !hasLibrary && !hasFavourites) {
+    throw new Error("that json does not include snax history, favourites, or library");
   }
 
   return {
     history: hasHistory ? hydrateImportedHistory(snapshot.history) : [],
     library: hasLibrary ? hydrateImportedLibrary(snapshot.library) : [],
+    favourites: hasFavourites ? hydrateImportedFavourites(snapshot.favourites) : [],
   };
+}
+
+function hydrateImportedFavourites(favourites) {
+  const seenIds = new Set();
+  return favourites
+    .filter((favourite) => favourite && typeof favourite === "object")
+    .map((favourite, index) => hydrateFavouriteWorkout(favourite, index))
+    .filter((favourite) => {
+      if (favourite.exercises.length === 0 || seenIds.has(favourite.id)) return false;
+      seenIds.add(favourite.id);
+      return true;
+    });
 }
 
 function hydrateImportedHistory(history) {
@@ -2043,6 +2204,11 @@ function countNewLibraryExercises(importedLibrary) {
   return count;
 }
 
+function countNewFavourites(importedFavourites) {
+  const localIds = new Set(state.favourites.map((favourite) => favourite.id));
+  return importedFavourites.filter((favourite) => !localIds.has(favourite.id)).length;
+}
+
 function openImportDialog(imported, fileName) {
   state.pendingImport = {
     fileName,
@@ -2052,11 +2218,14 @@ function openImportDialog(imported, fileName) {
       newHistoryEntries: countNewHistoryEntries(imported.history),
       libraryExercises: imported.library.length,
       newLibraryExercises: countNewLibraryExercises(imported.library),
+      favourites: imported.favourites.length,
+      newFavourites: countNewFavourites(imported.favourites),
     },
   };
   state.importModes = {
     history: "merge",
     library: "merge",
+    favourites: "merge",
   };
   renderImportDialog();
 }
@@ -2080,14 +2249,17 @@ function renderImportDialog() {
   const { stats } = pendingImport;
   const historyDisabled = stats.historyEntries === 0;
   const libraryDisabled = stats.libraryExercises === 0;
+  const favouritesDisabled = stats.favourites === 0;
 
   $("import-file-name").textContent = pendingImport.fileName;
   $("import-history-meta").textContent = `${stats.historyEntries} entr${stats.historyEntries === 1 ? "y" : "ies"} / ${stats.newHistoryEntries} new`;
   $("import-library-meta").textContent = `${stats.libraryExercises} exercise${stats.libraryExercises === 1 ? "" : "s"} / ${stats.newLibraryExercises} new`;
+  $("import-favourites-meta").textContent = `${stats.favourites} favourite${stats.favourites === 1 ? "" : "s"} / ${stats.newFavourites} new`;
   setImportModeControl("history", state.importModes.history, historyDisabled);
   setImportModeControl("library", state.importModes.library, libraryDisabled);
-  $("import-warning").textContent = importWarningText(historyDisabled, libraryDisabled);
-  $("import-confirm-btn").disabled = historyDisabled && libraryDisabled;
+  setImportModeControl("favourites", state.importModes.favourites, favouritesDisabled);
+  $("import-warning").textContent = importWarningText(historyDisabled, libraryDisabled, favouritesDisabled);
+  $("import-confirm-btn").disabled = historyDisabled && libraryDisabled && favouritesDisabled;
 }
 
 function setImportModeControl(kind, mode, disabled) {
@@ -2097,9 +2269,9 @@ function setImportModeControl(kind, mode, disabled) {
   });
 }
 
-function importWarningText(historyDisabled, libraryDisabled) {
-  if (historyDisabled && libraryDisabled) {
-    return "there is no history or library data to import";
+function importWarningText(historyDisabled, libraryDisabled, favouritesDisabled) {
+  if (historyDisabled && libraryDisabled && favouritesDisabled) {
+    return "there is no history, favourites, or library data to import";
   }
 
   const warnings = [];
@@ -2109,6 +2281,9 @@ function importWarningText(historyDisabled, libraryDisabled) {
   if (state.importModes.library === "overwrite" && !libraryDisabled) {
     warnings.push("library overwrite replaces local exercises");
   }
+  if (state.importModes.favourites === "overwrite" && !favouritesDisabled) {
+    warnings.push("favourites overwrite replaces saved workouts");
+  }
   if (state.importModes.history === "merge" && state.importModes.library === "overwrite" && !libraryDisabled) {
     warnings.push("local history may show unknown snacks for exercises not in the imported library");
   }
@@ -2117,7 +2292,7 @@ function importWarningText(historyDisabled, libraryDisabled) {
 }
 
 function updateImportMode(kind, mode) {
-  if (!state.pendingImport || !["history", "library"].includes(kind) || (mode !== "merge" && mode !== "overwrite")) {
+  if (!state.pendingImport || !["history", "library", "favourites"].includes(kind) || (mode !== "merge" && mode !== "overwrite")) {
     return;
   }
 
@@ -2134,6 +2309,7 @@ function confirmImport() {
   const imported = pendingImport.data;
   const hasImportedHistory = imported.history.length > 0;
   const hasImportedLibrary = imported.library.length > 0;
+  const hasImportedFavourites = imported.favourites.length > 0;
   const libraryResult =
     hasImportedLibrary && state.importModes.library === "overwrite"
       ? overwriteImportedLibrary(imported.library)
@@ -2152,13 +2328,30 @@ function confirmImport() {
 
   state.library = libraryResult.library;
   state.history = historyResult.history;
+  state.favourites = !hasImportedFavourites
+    ? state.favourites
+    : state.importModes.favourites === "overwrite"
+      ? imported.favourites.map((favourite) => hydrateFavouriteWorkout(favourite))
+      : mergeImportedFavourites(state.favourites, imported.favourites);
   closeImportDialog();
   save();
   renderHome();
   renderSettings();
   const historyAction = hasImportedHistory ? describeImportMode(state.importModes.history) : "kept";
   const libraryAction = hasImportedLibrary ? describeImportMode(state.importModes.library) : "kept";
-  toast(`${historyAction} history / ${libraryAction} library`);
+  const favouritesAction = hasImportedFavourites ? describeImportMode(state.importModes.favourites) : "kept";
+  toast(`${historyAction} history / ${favouritesAction} favourites / ${libraryAction} library`);
+}
+
+function mergeImportedFavourites(baseFavourites, importedFavourites) {
+  const favourites = baseFavourites.map((favourite) => hydrateFavouriteWorkout(favourite));
+  const existingIds = new Set(favourites.map((favourite) => favourite.id));
+  importedFavourites.forEach((favourite) => {
+    if (existingIds.has(favourite.id)) return;
+    favourites.push(hydrateFavouriteWorkout(favourite));
+    existingIds.add(favourite.id);
+  });
+  return favourites;
 }
 
 function describeImportMode(mode) {
@@ -2506,6 +2699,13 @@ async function init() {
       }
     });
   });
+  document.querySelectorAll('input[name="import-favourites-mode"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        updateImportMode("favourites", input.value);
+      }
+    });
+  });
   $("settings-close-btn").addEventListener("click", closeSnackEditor);
   $("settings-save-btn").addEventListener("click", saveSnackEditor);
   $("settings-overlay-scrim").addEventListener("click", closeSnackEditor);
@@ -2533,6 +2733,7 @@ async function init() {
   document.querySelectorAll('[data-action="home"]').forEach((button) => {
     button.addEventListener("click", goHome);
   });
+  $("done-favourite-btn").addEventListener("click", toggleCompletedWorkoutFavourite);
 
   window.addEventListener("scroll", syncFloatingBackButton, { passive: true });
 
@@ -2576,11 +2777,38 @@ async function init() {
     } else if (button.dataset.tab === "history") {
       renderHistory();
       showView("history");
+    } else if (button.dataset.tab === "favourites") {
+      renderFavourites();
+      showView("favourites");
     }
+  });
+
+  $("today-sessions").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const favouriteButton = target?.closest('[data-action="toggle-workout-favourite"]');
+    if (!(favouriteButton instanceof HTMLButtonElement)) return;
+    toggleRecordedWorkoutFavourite(favouriteButton.dataset.workoutId, favouriteButton);
+  });
+
+  $("favourites-list").addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const removeButton = target?.closest('[data-action="remove-favourite"]');
+    if (removeButton instanceof HTMLButtonElement) {
+      removeFavouriteFromScreen(removeButton.dataset.favouriteId, removeButton.closest(".favourite-card"));
+      return;
+    }
+    const playButton = target?.closest('[data-action="play-favourite"]');
+    if (!(playButton instanceof HTMLButtonElement)) return;
+    playFavouriteWorkout(playButton.dataset.favouriteId);
   });
 
   $("history-list").addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
+    const favouriteButton = target?.closest('[data-action="toggle-workout-favourite"]');
+    if (favouriteButton instanceof HTMLButtonElement) {
+      toggleRecordedWorkoutFavourite(favouriteButton.dataset.workoutId, favouriteButton);
+      return;
+    }
     const monthButton = target?.closest("[data-history-month]");
     if (monthButton instanceof HTMLButtonElement) {
       toggleHistoryMonth(monthButton.dataset.historyMonth);

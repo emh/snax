@@ -221,6 +221,7 @@ body.cancel-sheet-open {
 .view-preview,
 .view-settings,
 .view-history,
+.view-favourites,
 .view-done {
   width: min(100%, 720px);
   margin: 0 auto;
@@ -237,6 +238,7 @@ body.cancel-sheet-open {
   .view-preview,
   .view-settings,
   .view-history,
+  .view-favourites,
   .view-done {
     padding: 0 40px 88px;
   }
@@ -244,6 +246,7 @@ body.cancel-sheet-open {
 
 .view-home,
 .view-history,
+.view-favourites,
 .view-settings {
   padding-bottom: calc(106px + var(--safe-bottom));
 }
@@ -850,6 +853,7 @@ body.cancel-sheet-open {
 
 .preview-header-actions,
 .history-header-actions,
+.favourites-header-actions,
 .done-header-actions {
   position: absolute;
   z-index: 2;
@@ -1866,6 +1870,46 @@ body.settings-overlay-open {
   text-align: center;
 }
 
+.done-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 520px;
+  margin: 8px auto 0;
+}
+
+.done-stats-row .done-stats {
+  margin: 0;
+}
+
+.done-favourite-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--ink-light);
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  transition: color 140ms ease, background-color 140ms ease, transform 140ms ease;
+}
+
+.done-favourite-button:hover {
+  color: var(--red);
+  transform: scale(1.04);
+}
+
+.done-favourite-button.is-favourite {
+  color: var(--red);
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.done-favourite-button.is-favourite svg {
+  fill: currentColor;
+}
+
 .done-topbar {
   padding-bottom: 0;
 }
@@ -1897,6 +1941,68 @@ body.settings-overlay-open {
   flex-shrink: 0;
 }
 
+.favourites-list {
+  margin-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+
+.favourite-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.favourite-card-star {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--red);
+}
+
+.favourite-card-star:hover {
+  color: var(--ink);
+}
+
+.favourite-copy {
+  min-width: 0;
+}
+
+.favourite-exercises,
+.favourite-settings,
+.favourites-empty {
+  margin: 0;
+}
+
+.favourite-exercises {
+  color: var(--ink-mid);
+  font-size: clamp(19px, 5vw, 25px);
+  font-style: italic;
+  line-height: 1.25;
+}
+
+.favourite-settings {
+  margin-top: 8px;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+}
+
+.favourites-empty {
+  padding: 28px 0;
+  color: var(--ink-light);
+  font-size: 18px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
 .day-group {
   grid-template-columns: 80px 1fr;
   align-items: start;
@@ -1920,6 +2026,40 @@ body.settings-overlay-open {
   color: var(--ink-light);
   font-family: var(--font-mono);
   font-size: 10.5px;
+}
+
+.workout-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 6px;
+}
+
+.workout-stats-row .day-group-stats {
+  min-width: 0;
+  margin-top: 0;
+}
+
+.workout-favourite-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--ink-light);
+}
+
+.workout-favourite-button:hover,
+.workout-favourite-button.is-favourite {
+  color: var(--red);
+}
+
+.workout-favourite-button.is-favourite svg {
+  fill: currentColor;
 }
 
 .day-snack {

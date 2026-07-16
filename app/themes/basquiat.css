@@ -52,6 +52,7 @@ html[data-theme="basquiat"] .view-home,
 html[data-theme="basquiat"] .view-preview,
 html[data-theme="basquiat"] .view-settings,
 html[data-theme="basquiat"] .view-history,
+html[data-theme="basquiat"] .view-favourites,
 html[data-theme="basquiat"] .view-done {
   width: min(100%, 680px);
 }
@@ -419,6 +420,15 @@ html[data-theme="basquiat"] .day-group-time {
   clip-path: polygon(2% 9%, 100% 0, 96% 91%, 0 100%);
 }
 
+html[data-theme="basquiat"] .workout-favourite-button {
+  color: var(--ink);
+  transform: rotate(-5deg);
+}
+
+html[data-theme="basquiat"] .workout-favourite-button.is-favourite {
+  color: var(--red);
+}
+
 html[data-theme="basquiat"] .day-snack-name,
 html[data-theme="basquiat"] .name,
 html[data-theme="basquiat"] .settings-dialog-name,
@@ -640,6 +650,34 @@ html[data-theme="basquiat"] .timer-stack-item.is-current {
 
 html[data-theme="basquiat"] .done-list-item {
   font-size: 18px;
+}
+
+html[data-theme="basquiat"] .favourite-exercises,
+html[data-theme="basquiat"] .favourites-empty {
+  color: var(--ink);
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .favourite-card {
+  border-color: var(--ink);
+}
+
+html[data-theme="basquiat"] .done-favourite-button {
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 44% 56% 47% 53%;
+}
+
+html[data-theme="basquiat"] .favourite-card-star {
+  color: var(--red);
+  transform: rotate(-5deg);
+}
+
+html[data-theme="basquiat"] .done-favourite-button.is-favourite {
+  color: var(--red);
+  background: transparent;
 }
 
 html[data-theme="basquiat"] .toast {

@@ -1,4 +1,12 @@
-import { createDefaultLibrary, createSeedHistory, hydrateLibrary, hydrateSnack, hydrateWorkout, sortHistoryDescending } from "./model.js";
+import {
+  createDefaultLibrary,
+  createSeedHistory,
+  hydrateFavouriteWorkout,
+  hydrateLibrary,
+  hydrateSnack,
+  hydrateWorkout,
+  sortHistoryDescending,
+} from "./model.js";
 
 const STORAGE_KEY = "snax.app-state.v4";
 const EMPTY_CLOCK = { wallTime: 0, counter: 0 };
@@ -7,10 +15,25 @@ function fallbackState() {
   return {
     history: createSeedHistory(),
     library: createDefaultLibrary(),
+    favourites: [],
     deviceId: createDeviceId(),
     clock: { ...EMPTY_CLOCK },
     sync: createSyncState(),
   };
+}
+
+function normalizeFavourites(favourites) {
+  if (!Array.isArray(favourites)) return [];
+
+  const seenIds = new Set();
+  return favourites
+    .filter((favourite) => favourite && typeof favourite === "object")
+    .map((favourite, index) => hydrateFavouriteWorkout(favourite, index))
+    .filter((favourite) => {
+      if (favourite.exercises.length === 0 || seenIds.has(favourite.id)) return false;
+      seenIds.add(favourite.id);
+      return true;
+    });
 }
 
 function normalizeHistory(history) {
@@ -54,6 +77,7 @@ export function hydrateSnapshot(snapshot) {
   return {
     history: normalizeHistory(snapshot?.history),
     library: hydrateLibrary(snapshot?.library),
+    favourites: normalizeFavourites(snapshot?.favourites),
   };
 }
 
@@ -90,6 +114,7 @@ export function saveAppState(appState) {
     JSON.stringify({
       history: appState.history,
       library: appState.library,
+      favourites: appState.favourites,
       deviceId: appState.deviceId,
       clock: normalizeClock(appState.clock),
       sync: normalizeSyncState(appState.sync),

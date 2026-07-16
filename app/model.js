@@ -174,6 +174,22 @@ export function hydrateWorkout(workout) {
   };
 }
 
+export function hydrateFavouriteWorkout(favourite, index = 0) {
+  const source = favourite || {};
+  return {
+    id: String(source.id || `favourite-${index + 1}`),
+    createdAt: source.createdAt ? String(source.createdAt) : null,
+    rounds: Math.max(1, Math.min(5, Number(source.rounds) || 1)),
+    workDuration: WORK_DURATIONS.includes(Number(source.workDuration)) ? Number(source.workDuration) : SNACK_DURATION,
+    restDuration: REST_DURATIONS.includes(Number(source.restDuration)) ? Number(source.restDuration) : REST_DURATION,
+    exercises: Array.isArray(source.exercises)
+      ? source.exercises
+          .filter((exercise) => exercise && typeof exercise === "object")
+          .map((exercise, exerciseIndex) => hydrateExercise(exercise, exerciseIndex))
+      : [],
+  };
+}
+
 export function resolveSnack(snack, library) {
   const exercise = library.find((item) => item.id === snack.id);
   if (exercise) {

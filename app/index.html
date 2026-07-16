@@ -192,13 +192,33 @@
 
         <div class="done-wrap">
           <h2 class="done-title" id="done-title">workout complete</h2>
-          <p class="done-stats" id="done-stats"></p>
+          <div class="done-stats-row">
+            <p class="done-stats" id="done-stats"></p>
+            <button class="done-favourite-button" id="done-favourite-btn" type="button" aria-label="add workout to favourites" aria-pressed="false">
+              <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2.6 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.31l-5.8 3.05 1.11-6.46-4.7-4.58 6.49-.94z"></path></svg>
+            </button>
+          </div>
 
           <div class="done-summary">
             <div class="done-spark" id="done-spark"></div>
             <div class="done-list" id="done-list"></div>
           </div>
         </div>
+      </section>
+
+      <section id="view-favourites" class="view view-favourites">
+        <div class="preview-header">
+          <button class="back-btn" data-action="home" type="button" aria-label="back">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 19-7-7 7-7"></path>
+              <path d="M19 12H5"></path>
+            </svg>
+          </button>
+          <div class="favourites-header-actions header-actions" data-settings-host></div>
+          <h2 class="preview-title">favourites</h2>
+          <p class="preview-sub" id="favourites-meta">0 favourites</p>
+        </div>
+        <div class="favourites-list" id="favourites-list"></div>
       </section>
 
       <section id="view-history" class="view view-history">
@@ -285,6 +305,24 @@
                   </label>
                   <label>
                     <input type="radio" name="import-library-mode" value="overwrite" />
+                    <span>overwrite</span>
+                  </label>
+                </fieldset>
+              </section>
+
+              <section class="import-section">
+                <div>
+                  <p class="import-section-title">favourites</p>
+                  <p class="import-section-meta" id="import-favourites-meta">0 favourites / 0 new</p>
+                </div>
+                <fieldset class="import-mode" id="import-favourites-mode">
+                  <legend>Favourites import mode</legend>
+                  <label>
+                    <input type="radio" name="import-favourites-mode" value="merge" checked />
+                    <span>merge</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="import-favourites-mode" value="overwrite" />
                     <span>overwrite</span>
                   </label>
                 </fieldset>
@@ -385,6 +423,9 @@
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path>
           </svg>
+        </button>
+        <button class="toolbar-button" data-tab="favourites" type="button" aria-label="favourites">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2.6 2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.31l-5.8 3.05 1.11-6.46-4.7-4.58 6.49-.94z"></path></svg>
         </button>
       </nav>
 

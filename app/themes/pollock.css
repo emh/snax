@@ -49,6 +49,7 @@ html[data-theme="pollock"] .view-home,
 html[data-theme="pollock"] .view-preview,
 html[data-theme="pollock"] .view-settings,
 html[data-theme="pollock"] .view-history,
+html[data-theme="pollock"] .view-favourites,
 html[data-theme="pollock"] .view-done,
 html[data-theme="pollock"] .view-run,
 html[data-theme="pollock"] .view-rest {
@@ -66,6 +67,7 @@ html[data-theme="pollock"] .view-rest {
 
 html[data-theme="pollock"] .view-home,
 html[data-theme="pollock"] .view-history,
+html[data-theme="pollock"] .view-favourites,
 html[data-theme="pollock"] .view-settings {
   min-height: 100dvh;
 }
@@ -77,6 +79,7 @@ html[data-theme="pollock"] .preview-header,
 html[data-theme="pollock"] .preview-list,
 html[data-theme="pollock"] .preview-workout-stats,
 html[data-theme="pollock"] .history-list,
+html[data-theme="pollock"] .favourites-list,
 html[data-theme="pollock"] .settings-summary,
 html[data-theme="pollock"] .settings-list,
 html[data-theme="pollock"] .done-wrap,
@@ -433,6 +436,23 @@ html[data-theme="pollock"] .day-group-stats {
   text-transform: uppercase;
 }
 
+html[data-theme="pollock"] .workout-stats-row {
+  margin-top: 0;
+  border-top: 1px solid rgba(23, 22, 21, 0.34);
+}
+
+html[data-theme="pollock"] .workout-stats-row .day-group-stats {
+  border-top: 0;
+}
+
+html[data-theme="pollock"] .workout-favourite-button {
+  color: var(--ink-mid);
+}
+
+html[data-theme="pollock"] .workout-favourite-button.is-favourite {
+  color: var(--red);
+}
+
 /* Primary navigation */
 
 html[data-theme="pollock"] .bottom-toolbar {
@@ -454,6 +474,28 @@ html[data-theme="pollock"] .toolbar-button {
 html[data-theme="pollock"] .toolbar-button.active {
   color: var(--red);
   background: rgba(182, 61, 32, 0.08);
+}
+
+html[data-theme="pollock"] .done-favourite-button {
+  color: var(--ink);
+  background: rgba(248, 244, 234, 0.9);
+  border-color: rgba(23, 22, 21, 0.28);
+  box-shadow: 3px 5px 12px rgba(23, 22, 21, 0.12);
+}
+
+html[data-theme="pollock"] .favourite-card-star {
+  color: var(--red);
+}
+
+html[data-theme="pollock"] .done-favourite-button.is-favourite {
+  color: var(--red);
+}
+
+html[data-theme="pollock"] .favourite-exercises,
+html[data-theme="pollock"] .favourites-empty {
+  color: var(--ink);
+  font-family: var(--pollock-brush);
+  font-style: normal;
 }
 
 /* Headers, preview, history and library */
@@ -734,6 +776,7 @@ html[data-theme="pollock"] .theme-option[aria-pressed="true"] {
   html[data-theme="pollock"] .view-home,
   html[data-theme="pollock"] .view-preview,
   html[data-theme="pollock"] .view-history,
+  html[data-theme="pollock"] .view-favourites,
   html[data-theme="pollock"] .view-settings,
   html[data-theme="pollock"] .view-done {
     padding-right: 22px;
@@ -786,6 +829,7 @@ html[data-theme="pollock"] .theme-option[aria-pressed="true"] {
   html[data-theme="pollock"] .view-home,
   html[data-theme="pollock"] .view-preview,
   html[data-theme="pollock"] .view-history,
+  html[data-theme="pollock"] .view-favourites,
   html[data-theme="pollock"] .view-settings,
   html[data-theme="pollock"] .view-done {
     padding-right: 16px;
@@ -824,6 +868,7 @@ html[data-theme="pollock"] .theme-option[aria-pressed="true"] {
   html[data-theme="pollock"] .view-home,
   html[data-theme="pollock"] .view-preview,
   html[data-theme="pollock"] .view-history,
+  html[data-theme="pollock"] .view-favourites,
   html[data-theme="pollock"] .view-settings,
   html[data-theme="pollock"] .view-done,
   html[data-theme="pollock"] .view-run,
