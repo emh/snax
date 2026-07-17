@@ -3,13 +3,15 @@ const RETRY_MIN_MS = 1500;
 const RETRY_MAX_MS = 12000;
 
 export class SnaxSync {
-  constructor({ settings, deviceId, code, getVersion, getSnapshot, applyRemote, onStatus, onError }) {
+  constructor({ settings, deviceId, code, getVersion, getBaseVersion, getSnapshot, applyRemote, onSynced, onStatus, onError }) {
     this.settings = settings;
     this.deviceId = deviceId;
     this.code = normalizeCode(code);
     this.getVersion = getVersion;
+    this.getBaseVersion = getBaseVersion;
     this.getSnapshot = getSnapshot;
     this.applyRemote = applyRemote;
+    this.onSynced = onSynced;
     this.onStatus = onStatus;
     this.onError = onError;
     this.pollTimer = null;
@@ -32,16 +34,13 @@ export class SnaxSync {
 
     this.setStatus("syncing");
     this.syncNow();
-    this.pollTimer = globalThis.setInterval(() => {
-      this.syncNow();
-    }, POLL_INTERVAL_MS);
   }
 
   stop() {
     this.stopped = true;
     this.inFlight = false;
     this.queued = false;
-    globalThis.clearInterval(this.pollTimer);
+    globalThis.clearTimeout(this.pollTimer);
     globalThis.clearTimeout(this.retryTimer);
     this.pollTimer = null;
     this.retryTimer = null;
@@ -67,7 +66,10 @@ export class SnaxSync {
 
     this.inFlight = true;
     this.queued = false;
+    let succeeded = false;
     this.setStatus("syncing");
+    globalThis.clearTimeout(this.pollTimer);
+    this.pollTimer = null;
     globalThis.clearTimeout(this.retryTimer);
     this.retryTimer = null;
 
@@ -75,6 +77,7 @@ export class SnaxSync {
       const payload = await syncRoom(this.settings.syncBaseUrl, this.code, {
         deviceId: this.deviceId,
         version: this.getVersion(),
+        baseVersion: this.getBaseVersion(),
         snapshot: this.getSnapshot(),
       });
 
@@ -82,8 +85,10 @@ export class SnaxSync {
         this.applyRemote(payload.snapshot, payload.version, payload.updatedBy || "");
       }
 
+      this.onSynced?.(payload.version);
       this.retryDelay = RETRY_MIN_MS;
       this.setStatus("synced");
+      succeeded = true;
     } catch (error) {
       this.setStatus("offline");
       this.onError?.(error instanceof Error ? error.message : "Sync failed.");
@@ -92,8 +97,21 @@ export class SnaxSync {
       this.inFlight = false;
       if (this.queued && !this.stopped) {
         this.syncNow();
+      } else if (succeeded && !this.stopped) {
+        this.schedulePoll();
       }
     }
+  }
+
+  schedulePoll() {
+    if (this.stopped || this.pollTimer) {
+      return;
+    }
+
+    this.pollTimer = globalThis.setTimeout(() => {
+      this.pollTimer = null;
+      this.syncNow();
+    }, POLL_INTERVAL_MS);
   }
 
   scheduleRetry() {
@@ -198,6 +216,7 @@ async function syncRoom(baseUrl, code, input) {
     body: JSON.stringify({
       deviceId: input.deviceId,
       version: input.version,
+      baseVersion: input.baseVersion,
       snapshot: input.snapshot,
     }),
   });

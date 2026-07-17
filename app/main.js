@@ -490,6 +490,10 @@ function renderLinkPanel() {
   window.requestAnimationFrame(() => panel.classList.add("open"));
 
   $("link-helper").textContent = linkHelperText(linkUrl);
+  const status = $("link-status");
+  status.textContent = linkStatusText();
+  status.dataset.status = state.syncStatus;
+  status.hidden = !linkCode;
   $("link-code-box").textContent = state.linkBusy && !linkCode ? "preparing..." : linkCode || "not ready yet";
   $("link-url-box").textContent = state.linkBusy ? "preparing link..." : linkUrl || "not ready yet";
   $("link-code-input").value = state.linkCodeInput;
@@ -500,7 +504,7 @@ function renderLinkPanel() {
 }
 
 function linkHelperText(linkUrl) {
-  if (state.linkError) {
+  if (state.linkError && !state.sync.code) {
     return state.linkError;
   }
 
@@ -517,6 +521,22 @@ function linkHelperText(linkUrl) {
   }
 
   return "enter a code from another device below to sync";
+}
+
+function linkStatusText() {
+  if (!state.sync.code) {
+    return "";
+  }
+
+  if (state.syncStatus === "offline") {
+    return "offline — changes saved on this device";
+  }
+
+  if (state.syncStatus === "syncing") {
+    return "syncing";
+  }
+
+  return "synced";
 }
 
 function closeLinkPanel(immediate = false) {
@@ -929,8 +949,18 @@ function applyRemoteSnapshot(snapshot, version) {
   state.editingDraft = null;
   state.clock = observeClock(state.clock, version);
   state.sync.stateVersion = version || state.sync.stateVersion;
+  state.sync.lastSyncedVersion = version || state.sync.lastSyncedVersion;
   persistRemoteState();
   refreshVisibleViews();
+}
+
+function markSyncedVersion(version) {
+  if (!version || state.sync.lastSyncedVersion === version) {
+    return;
+  }
+
+  state.sync.lastSyncedVersion = version;
+  persistRemoteState();
 }
 
 function ensureSyncClient() {
@@ -943,12 +973,19 @@ function ensureSyncClient() {
     deviceId: state.deviceId,
     code: state.sync.code,
     getVersion: () => state.sync.stateVersion,
+    getBaseVersion: () => state.sync.lastSyncedVersion,
     getSnapshot: currentSnapshot,
     applyRemote: (snapshot, version) => {
       applyRemoteSnapshot(snapshot, version);
     },
+    onSynced: (version) => {
+      markSyncedVersion(version);
+    },
     onStatus: (status) => {
       state.syncStatus = status;
+      if (status === "synced") {
+        state.linkError = "";
+      }
       renderLinkPanel();
     },
     onError: (message) => {
@@ -1706,7 +1743,7 @@ function completeWorkoutForDev() {
   clearInterval(state.timerHandle);
   clearInterval(state.restHandle);
   rebuildWorkoutStack();
-  state.currentStackId ||= `r-${Date.now()}`;
+  state.currentStackId = `r-${Date.now()}`;
   const completedAt = Date.now();
   state.completed = state.stack.map((exercise, index) => ({
     id: exercise.id,
@@ -1932,6 +1969,7 @@ async function prepareLink() {
 
     state.sync.code = normalizeCode(payload.code);
     state.sync.stateVersion = payload.version || state.sync.stateVersion;
+    state.sync.lastSyncedVersion = payload.version || state.sync.lastSyncedVersion;
     state.clock = observeClock(state.clock, payload.version);
     state.syncStatus = "synced";
     persistRemoteState();
@@ -3113,6 +3151,7 @@ async function init() {
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
+  syncClient?.flush();
   if (state.currentView === "run" && !state.paused && state.snackEndTime) {
     state.secondsLeft = Math.max(0, Math.round((state.snackEndTime - Date.now()) / 1000));
     updateTimerDisplay();
@@ -3127,6 +3166,18 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
+window.addEventListener("online", () => {
+  if (!state.sync.code) return;
+  state.linkError = "";
+  syncClient?.flush();
+});
+
+window.addEventListener("offline", () => {
+  if (!state.sync.code) return;
+  state.syncStatus = "offline";
+  renderLinkPanel();
+});
+
 init();
 registerServiceWorker();
 
@@ -3135,9 +3186,7 @@ function registerServiceWorker() {
     return;
   }
 
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {
-      // The app can still run normally without offline install support.
-    });
+  navigator.serviceWorker.register("./sw.js").catch(() => {
+    // The app can still run normally without offline install support.
   });
 }

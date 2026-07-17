@@ -1,7 +1,18 @@
-const CACHE_NAME = "snax-shell-v31";
+const CACHE_NAME = "snax-shell-v32";
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./fonts/fonts.css",
+  "./fonts/atkinson-hyperlegible-mono-latin.woff2",
+  "./fonts/atkinson-hyperlegible-next-latin.woff2",
+  "./fonts/atkinson-hyperlegible-next-italic-latin.woff2",
+  "./fonts/barlow-condensed-500-latin.woff2",
+  "./fonts/barlow-condensed-600-latin.woff2",
+  "./fonts/barlow-condensed-700-latin.woff2",
+  "./fonts/barlow-condensed-800-latin.woff2",
+  "./fonts/caveat-latin.woff2",
+  "./fonts/cormorant-garamond-italic-latin.woff2",
+  "./fonts/permanent-marker-latin.woff2",
   "./styles.css",
   "./themes/basquiat.css",
   "./themes/mondrian.css",
@@ -20,8 +31,7 @@ const APP_SHELL = [
 ];
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
-  event.waitUntil(warmCache());
+  event.waitUntil(warmCache().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -57,19 +67,7 @@ self.addEventListener("fetch", (event) => {
 
 async function warmCache() {
   const cache = await caches.open(CACHE_NAME);
-  await Promise.all(
-    APP_SHELL.map(async (url) => {
-      try {
-        const request = new Request(url, { cache: "reload" });
-        const response = await fetch(request);
-        if (response.ok) {
-          await cache.put(request, response.clone());
-        }
-      } catch {
-        // Cache what we can during install; runtime fetches can backfill.
-      }
-    }),
-  );
+  await cache.addAll(APP_SHELL.map((url) => new Request(url, { cache: "reload" })));
 }
 
 async function networkFirst(request, fallbackUrl) {

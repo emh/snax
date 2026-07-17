@@ -65,12 +65,17 @@ export class SnaxLinkRoom {
     const room = await this.requireRoom();
     const body = await request.json();
     const input = normalizeSyncInput(body);
+    const hasLocalChanges = Boolean(input.baseVersion) && input.baseVersion !== input.version;
+    const isNewer = input.version && compareVersions(input.version, room.version) > 0;
 
-    if (input.version && compareVersions(input.version, room.version) > 0) {
-      room.version = input.version;
+    if (input.version && (isNewer || hasLocalChanges)) {
+      room.snapshot = mergeSnapshots(room.snapshot, input.snapshot, {
+        incomingWins: isNewer,
+        replaceFavourites: input.hasFavourites && isNewer,
+      });
+      room.version = nextServerVersion(maxVersion(room.version, input.version));
       room.updatedBy = input.deviceId;
       room.updatedAt = Date.now();
-      room.snapshot = normalizeSnapshot(input.snapshot);
       await this.state.storage.put(ROOM_KEY, room);
     }
 
@@ -189,6 +194,8 @@ function normalizeSyncInput(input = {}) {
   return {
     deviceId: typeof input.deviceId === "string" ? input.deviceId.trim() : "",
     version: typeof input.version === "string" ? input.version : "",
+    baseVersion: typeof input.baseVersion === "string" ? input.baseVersion : "",
+    hasFavourites: Array.isArray(input.snapshot?.favourites),
     snapshot: normalizeSnapshot(input.snapshot),
   };
 }
@@ -197,7 +204,93 @@ function normalizeSnapshot(snapshot = {}) {
   return {
     history: Array.isArray(snapshot.history) ? snapshot.history : [],
     library: Array.isArray(snapshot.library) ? snapshot.library : [],
+    favourites: Array.isArray(snapshot.favourites) ? snapshot.favourites : [],
   };
+}
+
+function mergeSnapshots(baseSnapshot, incomingSnapshot, options = {}) {
+  const base = normalizeSnapshot(baseSnapshot);
+  const incoming = normalizeSnapshot(incomingSnapshot);
+
+  return {
+    history: mergeHistory(base.history, incoming.history, options),
+    library: mergeRecords(base.library, incoming.library, options),
+    favourites: options.replaceFavourites ? incoming.favourites : base.favourites,
+  };
+}
+
+function mergeHistory(baseHistory, incomingHistory, options = {}) {
+  const entries = new Map();
+
+  baseHistory.forEach((entry) => {
+    const dateKey = String(entry?.dateKey || entry?.date || "");
+    if (!dateKey) return;
+    entries.set(dateKey, {
+      ...entry,
+      dateKey,
+      workouts: Array.isArray(entry.workouts) ? [...entry.workouts] : [],
+    });
+  });
+
+  incomingHistory.forEach((entry) => {
+    const dateKey = String(entry?.dateKey || entry?.date || "");
+    if (!dateKey) return;
+
+    const existing = entries.get(dateKey);
+    if (!existing) {
+      entries.set(dateKey, {
+        ...entry,
+        dateKey,
+        workouts: Array.isArray(entry.workouts) ? [...entry.workouts] : [],
+      });
+      return;
+    }
+
+    const workouts = new Map(
+      existing.workouts
+        .filter((workout) => workout && typeof workout === "object")
+        .map((workout) => [recordKey(workout), workout]),
+    );
+    (Array.isArray(entry.workouts) ? entry.workouts : []).forEach((workout) => {
+      if (!workout || typeof workout !== "object") return;
+      const key = recordKey(workout);
+      if (options.incomingWins || !workouts.has(key)) {
+        workouts.set(key, workout);
+      }
+    });
+
+    entries.set(dateKey, {
+      ...existing,
+      ...entry,
+      dateKey,
+      workouts: [...workouts.values()],
+    });
+  });
+
+  return [...entries.values()].sort((left, right) => right.dateKey.localeCompare(left.dateKey));
+}
+
+function mergeRecords(baseRecords, incomingRecords, options = {}) {
+  const records = new Map();
+
+  baseRecords.forEach((record) => {
+    if (!record || typeof record !== "object") return;
+    records.set(recordKey(record), record);
+  });
+
+  incomingRecords.forEach((record) => {
+    if (!record || typeof record !== "object") return;
+    const key = recordKey(record);
+    if (options.incomingWins || !records.has(key)) {
+      records.set(key, record);
+    }
+  });
+
+  return [...records.values()];
+}
+
+function recordKey(record) {
+  return String(record?.id || record?.name || JSON.stringify(record));
 }
 
 function publicRoom(room) {
@@ -233,6 +326,15 @@ function compareVersions(left, right) {
   if (a.wallTime !== b.wallTime) return a.wallTime - b.wallTime;
   if (a.counter !== b.counter) return a.counter - b.counter;
   return a.deviceId.localeCompare(b.deviceId);
+}
+
+function maxVersion(left, right) {
+  return compareVersions(left, right) >= 0 ? left : right;
+}
+
+function nextServerVersion(version) {
+  const parsed = parseVersion(version);
+  return `${String(parsed.wallTime).padStart(13, "0")}:${String(parsed.counter + 1).padStart(4, "0")}:server`;
 }
 
 function parseVersion(value) {

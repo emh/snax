@@ -168,9 +168,12 @@ function normalizeClock(clock) {
 }
 
 function createSyncState(input = {}) {
+  const stateVersion = typeof input.stateVersion === "string" ? input.stateVersion : "";
   return {
     code: normalizeCode(input.code),
-    stateVersion: typeof input.stateVersion === "string" ? input.stateVersion : "",
+    stateVersion,
+    lastSyncedVersion:
+      typeof input.lastSyncedVersion === "string" ? input.lastSyncedVersion : stateVersion,
   };
 }
 
