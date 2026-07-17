@@ -9,6 +9,7 @@ import {
 } from "./model.js";
 
 const STORAGE_KEY = "snax.app-state.v4";
+const WELCOME_SEEN_KEY = "snax.welcome-seen.v1";
 const EMPTY_CLOCK = { wallTime: 0, counter: 0 };
 
 function fallbackState() {
@@ -120,6 +121,29 @@ export function saveAppState(appState) {
       sync: normalizeSyncState(appState.sync),
     }),
   );
+}
+
+export function shouldShowWelcome() {
+  if (typeof window === "undefined") return false;
+
+  try {
+    if (window.localStorage.getItem(WELCOME_SEEN_KEY)) return false;
+    if (window.localStorage.getItem(STORAGE_KEY)) {
+      window.localStorage.setItem(WELCOME_SEEN_KEY, "1");
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function markWelcomeSeen() {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(WELCOME_SEEN_KEY, "1");
+  } catch {}
 }
 
 export function loadSettings() {

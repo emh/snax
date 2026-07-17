@@ -273,6 +273,7 @@ html[data-theme="basquiat"] .home-link-button,
 html[data-theme="basquiat"] .library-icon-button,
 html[data-theme="basquiat"] .back-btn,
 html[data-theme="basquiat"] .timer-icon-btn,
+html[data-theme="basquiat"] .global-help-button,
 html[data-theme="basquiat"] .global-settings-button {
   color: var(--ink);
 }
@@ -479,6 +480,17 @@ html[data-theme="basquiat"] .settings-dialog-title {
   font-weight: 400;
   font-style: normal;
   text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .help-section h3 {
+  font-family: "Permanent Marker", "Marker Felt", cursive;
+  font-weight: 400;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="basquiat"] .help-section {
+  border-color: var(--ink);
 }
 
 html[data-theme="basquiat"] .preview-title,

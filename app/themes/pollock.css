@@ -96,6 +96,7 @@ html[data-theme="pollock"] .rest-bottom {
 /* Shared controls */
 
 html[data-theme="pollock"] .home-link-button,
+html[data-theme="pollock"] .global-help-button,
 html[data-theme="pollock"] .global-settings-button,
 html[data-theme="pollock"] .library-icon-button,
 html[data-theme="pollock"] .timer-icon-btn {
@@ -109,6 +110,8 @@ html[data-theme="pollock"] .timer-icon-btn {
 
 html[data-theme="pollock"] .home-link-button:hover,
 html[data-theme="pollock"] .home-link-button[aria-expanded="true"],
+html[data-theme="pollock"] .global-help-button:hover,
+html[data-theme="pollock"] .global-help-button[aria-expanded="true"],
 html[data-theme="pollock"] .global-settings-button:hover,
 html[data-theme="pollock"] .global-settings-button[aria-expanded="true"],
 html[data-theme="pollock"] .library-icon-button:hover,
@@ -739,6 +742,13 @@ html[data-theme="pollock"] .import-dialog {
 
 html[data-theme="pollock"] .bottom-panel-head h2,
 html[data-theme="pollock"] .settings-dialog-title {
+  font-family: var(--pollock-brush);
+  font-weight: 400;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+html[data-theme="pollock"] .help-section h3 {
   font-family: var(--pollock-brush);
   font-weight: 400;
   font-style: normal;

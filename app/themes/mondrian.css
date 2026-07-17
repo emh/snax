@@ -79,7 +79,7 @@ html[data-theme="mondrian"] .view-home {
 
 html[data-theme="mondrian"] .home-header {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 94px 54px;
+  grid-template-columns: 48px minmax(0, 1fr) 94px 54px 54px;
   grid-template-rows: minmax(150px, auto) 72px;
   padding: var(--safe-top) 0 0;
   border-top: var(--mondrian-line) solid var(--ink);
@@ -124,8 +124,8 @@ html[data-theme="mondrian"] .home-header-actions {
   right: auto;
   display: grid;
   grid-row: 1;
-  grid-column: 3 / 5;
-  grid-template-columns: 94px 54px;
+  grid-column: 3 / 6;
+  grid-template-columns: 94px 54px 54px;
   align-self: stretch;
   align-items: stretch;
   justify-self: stretch;
@@ -168,7 +168,8 @@ html[data-theme="mondrian"] .home-link-button svg {
   stroke-width: 2.8;
 }
 
-html[data-theme="mondrian"] .global-settings-button {
+html[data-theme="mondrian"] .global-settings-button,
+html[data-theme="mondrian"] .global-help-button {
   width: 54px;
   height: 64px;
   color: var(--ink);
@@ -180,7 +181,8 @@ html[data-theme="mondrian"] .global-settings-button {
   -webkit-backdrop-filter: none;
 }
 
-html[data-theme="mondrian"] .home-header-actions .global-settings-button {
+html[data-theme="mondrian"] .home-header-actions .global-settings-button,
+html[data-theme="mondrian"] .home-header-actions .global-help-button {
   width: auto;
   height: auto;
   align-self: stretch;
@@ -188,12 +190,14 @@ html[data-theme="mondrian"] .home-header-actions .global-settings-button {
   border-left: var(--mondrian-line) solid var(--ink);
 }
 
-html[data-theme="mondrian"] .global-settings-button[aria-expanded="true"] {
+html[data-theme="mondrian"] .global-settings-button[aria-expanded="true"],
+html[data-theme="mondrian"] .global-help-button[aria-expanded="true"] {
   color: #ffffff;
   background: var(--mondrian-blue);
 }
 
-html[data-theme="mondrian"] .global-settings-button svg {
+html[data-theme="mondrian"] .global-settings-button svg,
+html[data-theme="mondrian"] .global-help-button svg {
   width: 22px;
   height: 22px;
   stroke-width: 2.4;
@@ -202,7 +206,7 @@ html[data-theme="mondrian"] .global-settings-button svg {
 html[data-theme="mondrian"] .date-lockup {
   position: relative;
   grid-row: 2;
-  grid-column: 2 / 5;
+  grid-column: 2 / 6;
   display: flex;
   align-items: center;
   min-height: 0;
@@ -1235,7 +1239,8 @@ html[data-theme="mondrian"] .timer-icon-btn {
   border: var(--mondrian-line) solid var(--ink);
 }
 
-html[data-theme="mondrian"] .timer-top-actions .global-settings-button {
+html[data-theme="mondrian"] .timer-top-actions .global-settings-button,
+html[data-theme="mondrian"] .timer-top-actions .global-help-button {
   width: 44px;
   height: 44px;
   color: var(--ink);
@@ -1326,6 +1331,18 @@ html[data-theme="mondrian"] .custom-workout-confirm {
   border: 2px solid var(--ink);
 }
 
+html[data-theme="mondrian"] .help-section {
+  border-color: var(--ink);
+  border-width: 2px;
+}
+
+html[data-theme="mondrian"] .help-section h3 {
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 html[data-theme="mondrian"] .chip,
 html[data-theme="mondrian"] .btn-muted,
 html[data-theme="mondrian"] .import-mode span,
@@ -1387,7 +1404,7 @@ html[data-theme="mondrian"] .toast {
 
 @media (max-width: 560px) {
   html[data-theme="mondrian"] .home-header {
-    grid-template-columns: 42px minmax(0, 1fr) 68px 46px;
+    grid-template-columns: 42px minmax(0, 1fr) 68px 46px 46px;
     grid-template-rows: minmax(132px, auto) 64px;
   }
 
@@ -1397,7 +1414,7 @@ html[data-theme="mondrian"] .toast {
   }
 
   html[data-theme="mondrian"] .home-header-actions {
-    grid-template-columns: 68px 46px;
+    grid-template-columns: 68px 46px 46px;
   }
 
   html[data-theme="mondrian"] .date-lockup {
@@ -1518,7 +1535,8 @@ html[data-theme="mondrian"] .toast {
     grid-auto-columns: 46px;
   }
 
-  html[data-theme="mondrian"] .global-settings-button {
+  html[data-theme="mondrian"] .global-settings-button,
+  html[data-theme="mondrian"] .global-help-button {
     width: 46px;
   }
 

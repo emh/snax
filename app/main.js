@@ -26,7 +26,14 @@ import {
   todayKey,
   toDateKey,
 } from "./model.js";
-import { hydrateSnapshot, loadAppState, loadSettings, saveAppState } from "./storage.js";
+import {
+  hydrateSnapshot,
+  loadAppState,
+  loadSettings,
+  markWelcomeSeen,
+  saveAppState,
+  shouldShowWelcome,
+} from "./storage.js";
 import { SnaxSync, buildDeviceLink, createLinkRoom, fetchLinkState, nextClock, normalizeCode, observeClock } from "./sync.js";
 
 const loadedState = loadAppState();
@@ -66,6 +73,7 @@ const state = {
   clock: loadedState.clock,
   sync: loadedState.sync,
   syncStatus: loadedState.sync.code ? "synced" : "local",
+  helpPanelOpen: false,
   linkPanelOpen: false,
   adminPanelOpen: false,
   cancelPanelOpen: false,
@@ -147,6 +155,7 @@ let timerWakeLock = null;
 let timerWakeLockRequest = null;
 let audioCtx = null;
 let filterSheetTimer = null;
+let helpPanelTimer = null;
 let linkPanelTimer = null;
 let adminPanelTimer = null;
 let editorPanelTimer = null;
@@ -234,6 +243,9 @@ function toast(message) {
 }
 
 function showView(name) {
+  if (state.helpPanelOpen && name !== state.currentView) {
+    closeHelpPanel(true);
+  }
   if (state.customWorkoutOpen && name !== "home") {
     closeCustomWorkoutPanel(true);
   }
@@ -263,9 +275,11 @@ function showView(name) {
 }
 
 function syncSettingsButtonHost() {
-  const button = $("admin-toggle");
   const host = document.querySelector(".view.active [data-settings-host]");
-  if (button && host && button.parentElement !== host) host.append(button);
+  if (!host) return;
+  [$("help-toggle"), $("admin-toggle")].forEach((button) => {
+    if (button && button.parentElement !== host) host.append(button);
+  });
 }
 
 function syncFloatingBackButton() {
@@ -1006,6 +1020,7 @@ function renderCustomWorkoutPanel() {
 }
 
 function openCustomWorkoutPanel() {
+  if (state.helpPanelOpen) closeHelpPanel(true);
   if (state.filterSheetScope) closeFilterSheet(true);
   if (state.linkPanelOpen) closeLinkPanel(true);
   if (state.adminPanelOpen) closeAdminPanel(true);
@@ -1240,6 +1255,7 @@ function renderFilterSheet() {
 }
 
 function openFilterSheet(scope) {
+  if (state.helpPanelOpen) closeHelpPanel(true);
   if (state.linkPanelOpen) closeLinkPanel(true);
   if (state.adminPanelOpen) closeAdminPanel(true);
   window.clearTimeout(filterSheetTimer);
@@ -1282,7 +1298,48 @@ function toggleFilterSheet(scope) {
   openFilterSheet(scope);
 }
 
+function openHelpPanel() {
+  if (state.filterSheetScope) closeFilterSheet(true);
+  if (state.linkPanelOpen) closeLinkPanel(true);
+  if (state.adminPanelOpen) closeAdminPanel(true);
+  window.clearTimeout(helpPanelTimer);
+  state.helpPanelOpen = true;
+  const panel = $("help-sheet");
+  panel.hidden = false;
+  document.body.classList.add("help-sheet-open");
+  $("help-toggle").setAttribute("aria-expanded", "true");
+  markWelcomeSeen();
+  window.requestAnimationFrame(() => panel.classList.add("open"));
+}
+
+function closeHelpPanel(immediate = false) {
+  const panel = $("help-sheet");
+  window.clearTimeout(helpPanelTimer);
+  state.helpPanelOpen = false;
+  panel.classList.remove("open");
+  document.body.classList.remove("help-sheet-open");
+  $("help-toggle").setAttribute("aria-expanded", "false");
+
+  if (immediate) {
+    panel.hidden = true;
+    return;
+  }
+
+  helpPanelTimer = window.setTimeout(() => {
+    panel.hidden = true;
+  }, 300);
+}
+
+function toggleHelpPanel() {
+  if (state.helpPanelOpen && $("help-sheet").classList.contains("open")) {
+    closeHelpPanel();
+  } else {
+    openHelpPanel();
+  }
+}
+
 function openAdminPanel() {
+  if (state.helpPanelOpen) closeHelpPanel(true);
   if (state.filterSheetScope) closeFilterSheet(true);
   window.clearTimeout(adminPanelTimer);
   state.adminPanelOpen = true;
@@ -1843,6 +1900,7 @@ async function toggleLinkPanel() {
   }
 
   if (state.filterSheetScope) closeFilterSheet(true);
+  if (state.helpPanelOpen) closeHelpPanel(true);
   state.linkPanelOpen = true;
   renderLinkPanel();
 
@@ -2862,6 +2920,9 @@ async function init() {
   });
   $("custom-workout-confirm").addEventListener("click", confirmCustomWorkout);
   $("settings-filter-toggle").addEventListener("click", () => toggleFilterSheet("library"));
+  $("help-toggle").addEventListener("click", toggleHelpPanel);
+  $("help-panel-close").addEventListener("click", () => closeHelpPanel());
+  $("help-sheet-scrim").addEventListener("click", () => closeHelpPanel());
   $("admin-toggle").addEventListener("click", toggleAdminPanel);
   $("admin-panel-close").addEventListener("click", () => closeAdminPanel());
   $("admin-sheet-scrim").addEventListener("click", () => closeAdminPanel());
@@ -2966,6 +3027,11 @@ async function init() {
     openSnackEditor(Number(button.dataset.index));
   });
   document.addEventListener("keydown", (event) => {
+    if (state.helpPanelOpen && event.key === "Escape") {
+      event.preventDefault();
+      closeHelpPanel();
+      return;
+    }
     if (state.customWorkoutOpen && event.key === "Escape") {
       event.preventDefault();
       closeCustomWorkoutPanel();
@@ -3042,6 +3108,7 @@ async function init() {
   });
 
   await handleIncomingLink();
+  if (shouldShowWelcome()) openHelpPanel();
 }
 
 document.addEventListener("visibilitychange", () => {

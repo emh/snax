@@ -125,6 +125,7 @@ button {
 .filter-sheet { z-index: 50; }
 .link-sheet { z-index: 60; }
 .admin-sheet { z-index: 60; }
+.help-sheet { z-index: 60; }
 .custom-workout-sheet { z-index: 70; }
 .workout-setup-sheet { z-index: 70; }
 .cancel-sheet { z-index: 80; }
@@ -203,6 +204,7 @@ button {
 body.filter-sheet-open,
 body.link-sheet-open,
 body.admin-sheet-open,
+body.help-sheet-open,
 body.custom-workout-sheet-open,
 body.workout-setup-sheet-open,
 body.cancel-sheet-open {
@@ -275,7 +277,7 @@ body.cancel-sheet-open {
 .home-header-actions {
   position: absolute;
   z-index: 2;
-  top: calc(48px + var(--safe-top));
+  top: calc(4px + var(--safe-top));
   right: 0;
 }
 
@@ -310,7 +312,8 @@ body.cancel-sheet-open {
   animation: back-button-lift 220ms var(--ease) both;
 }
 
-.global-settings-button {
+.global-settings-button,
+.global-help-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -320,14 +323,18 @@ body.cancel-sheet-open {
   color: var(--ink-light);
 }
 
-.app-shell > .global-settings-button { display: none; }
+.app-shell > .global-settings-button,
+.app-shell > .global-help-button { display: none; }
 
 .global-settings-button:hover,
-.global-settings-button[aria-expanded="true"] {
+.global-settings-button[aria-expanded="true"],
+.global-help-button:hover,
+.global-help-button[aria-expanded="true"] {
   color: var(--ink);
 }
 
-.global-settings-button svg {
+.global-settings-button svg,
+.global-help-button svg {
   display: block;
 }
 
@@ -1383,6 +1390,43 @@ body.cancel-sheet-open {
   opacity: 0.28;
 }
 
+.help-lede {
+  margin: -4px 0 18px;
+  color: var(--ink-light);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.help-section {
+  padding: 17px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.help-section:last-child {
+  padding-bottom: 0;
+}
+
+.help-section h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 500;
+  font-style: italic;
+}
+
+.help-section p {
+  margin: 0;
+  color: var(--ink-mid);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.help-section p + p {
+  margin-top: 10px;
+}
+
 .filter-sheet-search {
   margin-top: 18px;
 }
@@ -1394,6 +1438,7 @@ body.cancel-sheet-open {
 .filter-sheet-open .view.active,
 .link-sheet-open .view.active,
 .admin-sheet-open .view.active,
+.help-sheet-open .view.active,
 .custom-workout-sheet-open .view.active,
 .settings-overlay-open .view.active,
 .cancel-sheet-open .view.active {
